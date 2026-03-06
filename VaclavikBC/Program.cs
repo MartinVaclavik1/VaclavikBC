@@ -31,6 +31,15 @@ CookieAuthenticationDefaults.AuthenticationScheme
         options.ClientSecret = builder.Configuration["Google:ClientSecret"];
         options.Scope.Add("https://www.googleapis.com/auth/calendar.readonly");
         options.SaveTokens = true; // Store tokens in the authentication properties
+
+        //umožní ukládat refresh token
+        options.Events.OnRedirectToAuthorizationEndpoint = context =>
+        {
+            var url = context.RedirectUri;
+            url += (url.Contains('?') ? "&" : "?") + "access_type=offline&prompt=consent";
+            context.Response.Redirect(url);
+            return Task.CompletedTask;
+        };
     })
 .AddMicrosoftAccount("Microsoft", options => {
      options.ClientId = builder.Configuration["AzureAd:ClientId"];

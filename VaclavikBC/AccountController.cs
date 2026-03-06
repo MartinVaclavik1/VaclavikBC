@@ -21,7 +21,17 @@
             var result = await HttpContext.AuthenticateAsync();
 
             if (!result.Succeeded)
-                return Content("Login failed");
+                return Content("Přihlášení selhalo");
+
+            var accessToken = await HttpContext.GetTokenAsync("access_token");
+            var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
+            var idToken = await HttpContext.GetTokenAsync("id_token");
+            var expiresAt = await HttpContext.GetTokenAsync("expires_at");
+
+            Console.WriteLine($"Access token: {accessToken}");
+            Console.WriteLine($"Refresh token: {refreshToken}");
+            Console.WriteLine($"idToken: {idToken}");
+            Console.WriteLine($"expiresAt: {expiresAt}");
 
             var claims = result.Principal.Identities.FirstOrDefault()?.Claims;
 
@@ -29,19 +39,15 @@
             var name = claims?.FirstOrDefault(c => c.Type.EndsWith("name"))?.Value; //ends with, protože je zde pole nameidentifier, které to triggerovalo
             var provider = result.Properties?.Items[".AuthScheme"];
 
-            // ✅ SAVE / LINK USER HERE
+            //TODO přidat ukládání dat uživatele a tokenů
             // DB.User.CreateOrLink(email, provider, providerUserId)
             Console.WriteLine($"mail: {email}, name: {name},provider: {provider}");
             foreach (var item in claims)
             {
                 Console.WriteLine(item.ToString());
             }
-            //    return Content(@"
-            //    <script>
-            //        window.opener.location.reload();
-            //        window.close();
-            //    </script>
-            //", "text/html");
+
+            //zobrazí oznámení o přihlášení a zavře okno po časové prodlevě
             return Content("""
                 <!DOCTYPE html>
                 <html>
@@ -61,7 +67,7 @@
                     </script>
                 </head>
                 <body>
-                Login successful. You can close this window.
+                Úspěšné přihlášení. Můžete zavřít toto okno.
                 </body>
                 </html>
                 """, "text/html");
