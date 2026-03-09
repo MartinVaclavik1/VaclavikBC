@@ -42,14 +42,16 @@ CookieAuthenticationDefaults.AuthenticationScheme
         };
     })
 .AddMicrosoftAccount("Microsoft", options => {
-     options.ClientId = builder.Configuration["AzureAd:ClientId"];
+    options.ClientId = builder.Configuration["AzureAd:ClientId"];
     options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
+    options.SaveTokens = true;
     options.CallbackPath = "/signin-microsoft";
  })
 .AddCalendly("Calendly", options =>
 {
     options.ClientId = builder.Configuration["Calendly:ClientId"];
     options.ClientSecret = builder.Configuration["Calendly:ClientSecret"];
+    options.SaveTokens = true;
     options.CallbackPath = "/signin-calendly";
 });
 
