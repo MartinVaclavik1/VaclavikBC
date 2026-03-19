@@ -9,12 +9,14 @@
     <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
 </div> *@
 
-@page
+@* @page
 @model IndexModel
 @{
     ViewData["Title"] = "Calendar Aggregator";
-}
+} *@
 
+
+@* 
 <style>
     body { font-family: Arial, sans-serif; margin: 40px; background: #f5f5f5; }
     .container { max-width: 800px; margin: auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
@@ -37,19 +39,19 @@
     .btn-danger { background-color: #dc3545; color: white; }
     .event-count { font-weight: bold; }
     pre { background: #f4f4f4; padding: 10px; border-radius: 4px; max-height: 300px; overflow: auto; }
-</style>
+</style> *@
 @* 
 <div class="container">
     <h1>📅 Calendar Aggregator</h1>
  *@
-    <!-- OAuth Buttons -->
+@* <!-- OAuth Buttons -->
     <div class="provider-buttons">
         <button class="provider-btn google" onclick="oauthPopup('google')">Connect Google</button>
         <button class="provider-btn microsoft" onclick="oauthPopup('microsoft')">Connect Microsoft</button>
         <button class="provider-btn calendly" onclick="oauthPopup('calendly')">Connect Calendly</button>
-    </div>
+    </div> *@
 
-    <!-- Connection Status -->
+@* <!-- Connection Status -->
     <div class="status" id="status">
         Connected: Google <span id="google-status">❌</span> |
         Microsoft <span id="microsoft-status">❌</span> |
@@ -74,10 +76,10 @@
     <div id="events-preview" style="margin-top:20px;">
         <h3>Stored Events (<span id="event-count">0</span>)</h3>
         <pre id="events-json"></pre>
-    </div>
-</div>
+    </div> 
+</div>*@
 
-<script>
+@* <script>
     // Helper to get stored events from localStorage
     function getStoredEvents() {
         return JSON.parse(localStorage.getItem('aggregatedEvents') || '[]');
@@ -210,4 +212,348 @@
         fetchConnectionStatus();
         updateEventDisplay();
     };
-</script>
+</script> *@
+
+@*---------------------------------------------------------------------------------------------------------------*@
+@page
+@model IndexModel
+@{
+	ViewData["Title"] = "Calendar Aggregator";
+}
+
+@* Toto je šablona pro zobrazení kalendáře v Razor view (cshtml).
+    Model lze přizpůsobit vašim datům. *@
+
+@* Kalendář s týdenním a denním zobrazením – celá stránka *@
+
+@* Kalendář s týdenním a denním zobrazením – celá stránka, dny vyplňují výšku, názvy dnů *@
+
+@* Kalendář s týdenním a denním zobrazením – celá stránka, dny vyplňují výšku, názvy dnů, zarovnání, scrollbary *@
+
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Kalendář</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            font-family: sans-serif;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            background: #f5f5f5;
+        }
+
+        .calendar-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background: white;
+            overflow: hidden;
+        }
+
+        .calendar-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 15px 20px;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+            gap: 10px;
+            background: white;
+            flex-shrink: 0;
+        }
+
+        .view-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+            .view-toggle button,
+            .nav-buttons button {
+                padding: 8px 16px;
+                border: 1px solid #007bff;
+                background: white;
+                color: #007bff;
+                border-radius: 20px;
+                cursor: pointer;
+                font-weight: bold;
+                transition: 0.2s;
+            }
+
+                .view-toggle button.active {
+                    background: #007bff;
+                    color: white;
+                }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .range-info {
+            font-weight: bold;
+            font-size: 1.1em;
+        }
+
+        /* Scrollovatelný obal pro grid */
+        .calendar-grid-wrapper {
+            flex: 1 1 auto;
+            overflow: auto; /* automatické scrollbary v obou směrech */
+            padding: 0 0 10px 0;
+        }
+
+        .calendar-grid {
+            display: grid;
+            min-width: fit-content; /* grid se přizpůsobí obsahu */
+            height: 100%;
+        }
+
+        .time-header {
+            display: contents;
+        }
+
+            /* Buňka v záhlaví (prázdná) */
+            .time-header .date-cell {
+                grid-column: 1;
+                background: #f0f0f0;
+                font-weight: bold;
+                text-align: center;
+                padding: 12px 5px;
+                border-right: 1px solid #ddd;
+                border-bottom: 1px solid #ddd;
+                position: sticky;
+                left: 0;
+                background: #f0f0f0;
+                z-index: 2;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            /* Časové buňky v záhlaví */
+            .time-header .time-cell {
+                background: #f0f0f0;
+                text-align: center;
+                padding: 12px 5px;
+                font-weight: bold;
+                border-right: 1px solid #ddd;
+                border-bottom: 1px solid #ddd;
+                position: sticky;
+                top: 0;
+                z-index: 1;
+                min-width: 100px; /* dostatečná šířka pro časy */
+                white-space: normal;
+                word-break: break-word;
+            }
+
+        .day-row {
+            display: contents;
+        }
+
+            /* Buňky s datem (levý sloupec) */
+            .day-row .date-cell {
+                background: #fafafa;
+                padding: 10px 5px;
+                font-weight: bold;
+                text-align: center;
+                border-right: 1px solid #ddd;
+                border-bottom: 1px solid #ddd;
+                position: sticky;
+                left: 0;
+                background: #fafafa;
+                z-index: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            /* Buňky časových slotů */
+            .day-row .time-slot {
+                padding: 10px 5px;
+                border-right: 1px solid #ddd;
+                border-bottom: 1px solid #ddd;
+                min-height: 60px;
+                background: white;
+                transition: background 0.1s;
+                height: 100%;
+                min-width: 100px; /* stejná šířka jako hlavička */
+            }
+
+                .day-row .time-slot:hover {
+                    background: #f9f9ff;
+                    cursor: pointer;
+                }
+
+        /* Vrstvení pro sticky prvky */
+        .time-header .time-cell {
+            z-index: 3;
+        }
+
+        .time-header .date-cell {
+            z-index: 4;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-container">
+        <div class="calendar-header">
+            <div class="view-toggle">
+                <button id="weeklyToggle" class="active">Týden</button>
+                <button id="dailyToggle">Den</button>
+            </div>
+            <div class="range-info" id="rangeInfo"></div>
+            <div class="nav-buttons">
+                <button id="prevBtn">Předchozí</button>
+                <button id="nextBtn">Další</button>
+            </div>
+        </div>
+
+        <div class="calendar-grid-wrapper">
+            <div id="calendarGrid" class="calendar-grid"></div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            let currentDate = new Date();
+            currentDate.setHours(0, 0, 0, 0);
+            let currentView = 'weekly';
+
+            const dayNames = ['Neděle', 'Pondělí', 'Úterý', 'Středa', 'Čtvrtek', 'Pátek', 'Sobota'];
+
+            function formatDate(date) {
+                const day = String(date.getDate()).padStart(2, '0');
+                const month = String(date.getMonth() + 1).padStart(2, '0');
+                return `${day}.${month}`;
+            }
+
+            function getWeekDates(date) {
+                const result = [];
+                const dayOfWeek = date.getDay();
+                const mondayOffset = dayOfWeek === 0 ? -6 : 1 - dayOfWeek;
+                const monday = new Date(date);
+                monday.setDate(date.getDate() + mondayOffset);
+                for (let i = 0; i < 7; i++) {
+                    const day = new Date(monday);
+                    day.setDate(monday.getDate() + i);
+                    result.push(day);
+                }
+                return result;
+            }
+
+            function getTimeSlots() {
+                const slots = [];
+                for (let hour = 0; hour < 24; hour++) {
+                    slots.push(`${hour}:00`);
+                }
+                return slots;
+            }
+
+            function getRangeText(view, refDate) {
+                if (view === 'weekly') {
+                    const week = getWeekDates(refDate);
+                    return `${formatDate(week[0])} – ${formatDate(week[6])}`;
+                } else {
+                    return formatDate(refDate);
+                }
+            }
+
+            function renderCalendar() {
+                const grid = document.getElementById('calendarGrid');
+                const rangeInfo = document.getElementById('rangeInfo');
+                const timeSlots = getTimeSlots();
+                const slotsCount = timeSlots.length;
+
+                grid.style.gridTemplateColumns = `100px repeat(${slotsCount}, 1fr)`;
+
+                if (currentView === 'weekly') {
+                    grid.style.gridTemplateRows = `auto repeat(7, 1fr)`;
+                } else {
+                    grid.style.gridTemplateRows = `auto 1fr`;
+                }
+
+                let html = '';
+
+                // Hlavička
+                html += '<div class="time-header">';
+                html += '<div class="date-cell"></div>';
+                timeSlots.forEach(time => {
+                    html += `<div class="time-cell">${time}</div>`;
+                });
+                html += '</div>';
+
+                if (currentView === 'weekly') {
+                    const weekDates = getWeekDates(currentDate);
+                    weekDates.forEach(date => {
+                        const dateStr = formatDate(date);
+                        const dayName = dayNames[date.getDay()];
+                        html += '<div class="day-row">';
+                        html += `<div class="date-cell">${dayName} <br> ${dateStr}</div>`;
+                        timeSlots.forEach(time => {
+                            html += `<div class="time-slot" data-date="${dateStr}" data-time="${time}"></div>`;
+                        });
+                        html += '</div>';
+                    });
+                } else {
+                    const dateStr = formatDate(currentDate);
+                    const dayName = dayNames[currentDate.getDay()];
+                    html += '<div class="day-row">';
+                    html += `<div class="date-cell">${dayName} <br> ${dateStr}</div>`;
+                    timeSlots.forEach(time => {
+                        html += `<div class="time-slot" data-date="${dateStr}" data-time="${time}"></div>`;
+                    });
+                    html += '</div>';
+                }
+
+                grid.innerHTML = html;
+                rangeInfo.textContent = getRangeText(currentView, currentDate);
+            }
+
+            function previous() {
+                if (currentView === 'weekly') {
+                    currentDate.setDate(currentDate.getDate() - 7);
+                } else {
+                    currentDate.setDate(currentDate.getDate() - 1);
+                }
+                renderCalendar();
+            }
+
+            function next() {
+                if (currentView === 'weekly') {
+                    currentDate.setDate(currentDate.getDate() + 7);
+                } else {
+                    currentDate.setDate(currentDate.getDate() + 1);
+                }
+                renderCalendar();
+            }
+
+            function setView(view) {
+                currentView = view;
+                document.getElementById('weeklyToggle').classList.toggle('active', view === 'weekly');
+                document.getElementById('dailyToggle').classList.toggle('active', view === 'daily');
+                renderCalendar();
+            }
+
+            window.addEventListener('load', () => {
+                renderCalendar();
+
+                document.getElementById('weeklyToggle').addEventListener('click', () => setView('weekly'));
+                document.getElementById('dailyToggle').addEventListener('click', () => setView('daily'));
+                document.getElementById('prevBtn').addEventListener('click', previous);
+                document.getElementById('nextBtn').addEventListener('click', next);
+            });
+        })();
+    </script>
+</body>
+</html>
