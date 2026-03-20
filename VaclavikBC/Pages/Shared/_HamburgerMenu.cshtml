@@ -1,0 +1,174 @@
+﻿<div class="hamburger-menu">
+
+	<button class="menu-toggle" aria-label="Toggle menu">Manage calendars</button>
+
+	<nav class="menu">
+		<button class="close-menu" aria-label="Close menu">✕</button>
+
+		<ul class="provider-buttons">
+			<li><button class="provider-btn google" onclick="oauthPopup('google')">Connect Google</button></li>
+			<li><button class="provider-btn microsoft" onclick="oauthPopup('microsoft')">Connect Microsoft</button></li>
+			<li><button class="provider-btn calendly" onclick="oauthPopup('calendly')">Connect Calendly</button></li>
+
+		</ul>
+		<br />
+		<ul>
+			<li class="hamburger-nadpis">Connected calendars</li>
+		</ul>
+	</nav>
+</div>
+
+<style>
+
+	.close-menu {
+		position: absolute;
+		top: 10px;
+		right: 10px;
+		background: none;
+		border: none;
+		font-size: 24px;
+		color: white;
+		cursor: pointer;
+		padding: 5px;
+	}
+
+		.close-menu:hover {
+			color: #ccc;
+		}
+
+	/* Hamburger menu container */
+	.hamburger-menu {
+		position: relative;
+	}
+
+	/* Menu toggle button (fixed position) */
+	.menu-toggle {
+		position: fixed;
+		top: 20px;
+		right: 20px;
+		z-index: 1100;
+		background: #333;
+		color: white;
+		border: none;
+		font-size: 20px;
+		padding: 8px 12px;
+		cursor: pointer;
+		border-radius: 4px;
+	}
+
+	/* The actual navigation menu (off-screen by default) */
+	.menu {
+		position: fixed;
+		top: 0;
+		right: -250px; /* schováno na pravé straně */
+		width: 250px;
+		height: 100%;
+		background-color: #333;
+		color: white;
+		transition: left 0.3s ease;
+		z-index: 1000;
+		padding-top: 60px; /* space for the button if needed */
+		box-shadow: 2px 0 5px rgba(0,0,0,0.3);
+	}
+
+		/* po kliknutí se otevře vpravo */
+		.menu.open {
+			right: 0;
+		}
+
+		/* Menu links styling */
+		.menu ul {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+		}
+
+		.menu li {
+			border-bottom: 1px solid #444;
+		}
+
+		.menu a {
+			display: block;
+			padding: 15px 20px;
+			color: white;
+			text-decoration: none;
+		}
+
+			.menu a:hover {
+				background-color: #555;
+			}
+
+	/* Background content – optional overlay when menu is open */
+	.background-content {
+		transition: opacity 0.2s;
+	}
+	/* Optional: dim the background when menu is open */
+	body.menu-open .background-content {
+		opacity: 0.5;
+	}
+</style>
+
+<script>
+		document.addEventListener('DOMContentLoaded', function () {
+		// const menuToggle = document.querySelector('.menu-toggle');
+		// const menu = document.querySelector('.menu');
+
+		// if (menuToggle && menu) {
+		// 	menuToggle.addEventListener('click', function () {
+		// 		menu.classList.toggle('open');
+		// 		document.body.classList.toggle('menu-open');
+		// 	});
+		// }
+
+		const menuToggle = document.querySelector('.menu-toggle');
+		const closeMenu = document.querySelector('.close-menu');
+		const menu = document.querySelector('.menu');
+
+		function openMenu() {
+			menu.classList.add('open');
+			document.body.classList.add('menu-open');
+			menuToggle.style.display = "none";
+		}
+
+		function closeMenuFunction() {
+			menu.classList.remove('open');
+			document.body.classList.remove('menu-open');
+			menuToggle.style.display = "block";
+		}
+
+		if (menuToggle) {
+			menuToggle.addEventListener('click', openMenu);
+		}
+		if (closeMenu) {
+			closeMenu.addEventListener('click', closeMenuFunction);
+		}
+	});
+
+	 function oauthPopup(provider) {
+		// Determine the challenge URL
+		let url;
+		if (provider === 'google') {
+			url = /* '/Identity/Account/ExternalLogin?provider=Google&returnUrl=/'; */ '/Account/OAuthLogin?provider=Google';
+		} else if (provider === 'microsoft') {
+			url = /* '/Identity/Account/ExternalLogin?provider=Microsoft&returnUrl=/'; */ '/Account/OAuthLogin?provider=Microsoft';
+		} else if (provider === 'calendly') {
+			url = /* '/challenge/calendly'; */ '/Account/OAuthLogin?provider=Calendly';
+		}
+
+		// Open popup window (width, height)
+		const width = 600, height = 700;
+		const left = (screen.width - width) / 2;
+		const top = (screen.height - height) / 2;
+		const popup = window.open(url, "oauthPopup",
+			`width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`);
+
+		// Poll for popup close to refresh connection status
+		const timer = setInterval(() => {
+			if (popup.closed) {
+				clearInterval(timer);
+				// Optionally refresh connection status by calling an API endpoint
+				fetchConnectionStatus();
+			}
+		}, 500);
+	}
+</script>
