@@ -41,59 +41,30 @@
             // DB.User.CreateOrLink(email, provider, providerUserId)
 
             //TODO smazat výpisy
-            Console.WriteLine($"Access token: {accessToken}");
-            Console.WriteLine($"mail: {email}, name: {name},provider: {provider}");
-            Console.WriteLine($"Refresh token: {refreshToken}");
-            Console.WriteLine($"idToken: {idToken}");
-            Console.WriteLine($"expiresAt: {expiresAt}");
-            foreach (var item in claims)
+            //Console.WriteLine($"Access token: {accessToken}");
+            //Console.WriteLine($"mail: {email}, name: {name},provider: {provider}");
+            //Console.WriteLine($"Refresh token: {refreshToken}");
+            //Console.WriteLine($"idToken: {idToken}");
+            //Console.WriteLine($"expiresAt: {expiresAt}");
+            //foreach (var item in claims)
+            //{
+            //    Console.WriteLine(item.ToString());
+            //}
+
+            if (provider == null)
             {
-                Console.WriteLine(item.ToString());
+
+            }
+            else if (provider == "Google")
+            {
+                GoogleController.ZiskejData(accessToken);
+            }
+            else
+            {
+                return Content("Chyba při získávání kalendářových dat");
             }
 
-            using var client = new HttpClient();
 
-            client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", accessToken);
-
-            var response = await client.GetAsync(
-                "https://www.googleapis.com/calendar/v3/users/me/calendarList");
-
-            var content = await response.Content.ReadAsStringAsync();
-
-            Console.WriteLine(content);
-
-            string pageToken = null;
-            using (StreamWriter writer = new StreamWriter("vystup.txt"))
-            {
-                do
-                {
-                    //https://www.googleapis.com/calendar/v3/calendars/{NAZEV KALENDARE (id)}/events    bcpracemartin@gmail.com
-                    var url = "https://www.googleapis.com/calendar/v3/calendars/primary/events" +
-                    "?singleEvents=false";
-
-                    if (pageToken != null)
-                        url += $"&pageToken={pageToken}";
-
-                    var ulohy = await client.GetAsync(url);
-                    ulohy.EnsureSuccessStatusCode();
-
-                    var json = await ulohy.Content.ReadAsStringAsync();
-
-
-                    using var doc = JsonDocument.Parse(json);
-
-
-                    if (doc.RootElement.TryGetProperty("nextPageToken", out var token))
-                    {
-                        pageToken = token.GetString();
-                    }
-                    else { pageToken = null; }
-
-                    //Console.WriteLine(json);
-                    writer.WriteLine(json);
-                } while (pageToken != null);
-            }
             //zobrazí oznámení o přihlášení a zavře okno po časové prodlevě
             return Content("""
                 <!DOCTYPE html>
@@ -114,7 +85,7 @@
                     </script>
                 </head>
                 <body>
-                Úspěšné přihlášení. Můžete zavřít toto okno.
+                Uspesne prihlaseni. Muzete zavrit toto okno.
                 </body>
                 </html>
                 """, "text/html");
