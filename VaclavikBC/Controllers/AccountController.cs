@@ -5,6 +5,7 @@
     using System.Net.Http.Headers;
     using System.Text.Json;
     using System.Text.Json.Serialization;
+    using VaclavikBC.Enums;
 
     public class AccountController : Controller
     {
@@ -40,24 +41,21 @@
             //TODO přidat ukládání dat uživatele a tokenů
             // DB.User.CreateOrLink(email, provider, providerUserId)
 
-            //TODO smazat výpisy
-            //Console.WriteLine($"Access token: {accessToken}");
-            //Console.WriteLine($"mail: {email}, name: {name},provider: {provider}");
-            //Console.WriteLine($"Refresh token: {refreshToken}");
-            //Console.WriteLine($"idToken: {idToken}");
-            //Console.WriteLine($"expiresAt: {expiresAt}");
-            //foreach (var item in claims)
-            //{
-            //    Console.WriteLine(item.ToString());
-            //}
-
             if (provider == null)
             {
 
             }
-            else if (provider == "Google")
+            else if (provider == Providers.Google.ToString())
             {
                 GoogleController.ZiskejData(accessToken);
+            }
+            else if (provider == Providers.Microsoft.ToString())
+            {
+                throw new NotImplementedException();
+            }
+            else if (provider == Providers.Calendly.ToString())
+            {
+                throw new NotImplementedException();
             }
             else
             {

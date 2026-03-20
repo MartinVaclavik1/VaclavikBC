@@ -17,7 +17,7 @@
 
 
 
-<style>
+@* <style>
 	body {
 		font-family: Arial, sans-serif;
 		margin: 40px;
@@ -139,12 +139,6 @@
 	}
 </style>
 
-@* 
-<div class="container">
-    <h1>📅 Calendar Aggregator</h1>
- *@
-
-<!DOCTYPE
 <!DOCTYPE html>
 <html>
 <head>
@@ -155,7 +149,12 @@
 
 </body>
 
-</html>
+</html> *@
+
+
+
+
+
 @* <!-- Connection Status -->
     <div class="status" id="status">
         Connected: Google <span id="google-status">❌</span> |
@@ -183,3 +182,563 @@
         <pre id="events-json"></pre>
     </div> 
 </div>*@
+
+
+@*-------------------------------------------------------den nahoře, čas vlevo-----------------------*@
+@* 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weekly Calendar – Hours as Column</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            padding: 1rem;
+        }
+
+        /* Calendar container: flex layout with left column fixed */
+        .calendar-wrapper {
+            display: flex;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow-x: auto;
+            background: #fff;
+        }
+
+        /* Left column: hour markers */
+        .hours-column {
+            width: 60px;
+            flex-shrink: 0;
+            background-color: #f8f9fa;
+            border-right: 1px solid #dee2e6;
+        }
+        .hour-marker {
+            height: 60px;          /* 60px per hour (1px per minute) */
+            line-height: 60px;
+            text-align: right;
+            padding-right: 8px;
+            font-size: 12px;
+            color: #495057;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        /* Days container: flex with 7 columns */
+        .days-container {
+            display: flex;
+            flex: 1;
+            overflow-x: auto;
+        }
+        .day-column {
+            flex: 1;
+            min-width: 120px;
+            border-right: 1px solid #dee2e6;
+            position: relative;
+        }
+        .day-header {
+            background-color: #f1f3f5;
+            text-align: center;
+            font-weight: bold;
+            padding: 0.5rem;
+            border-bottom: 1px solid #dee2e6;
+            position: sticky;
+            top: 0;
+            z-index: 5;
+        }
+        .header-filler{
+            height: 40px; /* 60px per hour (1px per minute) */  /*TODO nedávat natvrdo height 40px*/
+            line-height: 60px;
+            text-align: right;
+            padding-right: 8px;
+            color: #495057;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .timeline-container {
+            position: relative;
+            height: 1440px;        /* 24h * 60px */
+            background: repeating-linear-gradient(
+                to bottom,
+                #f0f0f0 0px,
+                #f0f0f0 1px,
+                transparent 1px,
+                transparent 60px
+            );
+        }
+
+        /* Event block */
+        .event {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            background-color: #4a9eff;
+            border-left: 3px solid #0066cc;
+            border-radius: 4px;
+            padding: 2px 4px;
+            color: white;
+            font-size: 11px;
+            overflow: hidden;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        .event:hover {
+            background-color: #2b7bcf;
+        }
+        .event .remove {
+            float: right;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            width: 18px;
+            text-align: center;
+            line-height: 16px;
+            margin-left: 4px;
+        }
+        .event .remove:hover {
+            background: rgba(0,0,0,0.6);
+        }
+
+        /* Add panel */
+        .add-panel {
+            margin: 2rem auto;
+            padding: 1.5rem;
+            background: #f1f3f5;
+            border-radius: 8px;
+            max-width: 900px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .add-panel .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .add-panel label {
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .add-panel input, .add-panel select, .add-panel button {
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .add-panel button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            padding: 0.5rem 1.5rem;
+        }
+        .add-panel button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="calendar-wrapper">
+        <!-- Left column: hours 00:00 to 23:00 -->
+        <div class="hours-column">
+            <div class="header-filler"></div>
+            @for (int hour = 0; hour < 24; hour++)
+            {
+                <div class="hour-marker">@hour.ToString("00"):00</div>
+            }
+        </div>
+
+        <!-- Days columns -->
+        <div class="days-container">
+            @{
+                string[] days = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+                for (int i = 0; i < days.Length; i++)
+                {
+                    <div class="day-column">
+                        <div class="day-header">@days[i]</div>
+                        <div class="timeline-container" id="timeline_@i"></div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Unified add panel -->
+    <div class="add-panel">
+        <div class="field">
+            <label>Day</label>
+            <select id="daySelect">
+                <option value="0">Monday</option>
+                <option value="1">Tuesday</option>
+                <option value="2">Wednesday</option>
+                <option value="3">Thursday</option>
+                <option value="4">Friday</option>
+                <option value="5">Saturday</option>
+                <option value="6">Sunday</option>
+            </select>
+        </div>
+        <div class="field">
+            <label>Start Time</label>
+            <input type="time" id="startTime" step="60" value="09:00" />
+        </div>
+        <div class="field">
+            <label>End Time</label>
+            <input type="time" id="endTime" step="60" value="10:00" />
+        </div>
+        <div class="field">
+            <label>Event Title</label>
+            <input type="text" id="eventTitle" placeholder="Meeting, etc." value="Event" />
+        </div>
+        <div class="field">
+            <button onclick="addEvent()">+ Add Event</button>
+        </div>
+    </div>
+
+    <script>
+        // Helper: convert "HH:MM" to minutes since midnight
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        // Helper: format minutes as "HH:MM"
+        function minutesToTime(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function addEvent() {
+            const dayIndex = parseInt(document.getElementById('daySelect').value, 10);
+            const container = document.getElementById(`timeline_${dayIndex}`);
+            if (!container) return;
+
+            const startTimeStr = document.getElementById('startTime').value;
+            const endTimeStr = document.getElementById('endTime').value;
+            const title = document.getElementById('eventTitle').value.trim() || 'Event';
+
+            if (!startTimeStr || !endTimeStr) {
+                alert('Please fill start and end times.');
+                return;
+            }
+
+            const startMin = timeToMinutes(startTimeStr);
+            let endMin = timeToMinutes(endTimeStr);
+            if (endMin <= startMin) {
+                alert('End time must be after start time.');
+                return;
+            }
+
+            if (startMin < 0 || endMin > 1440) {
+                alert('Times must be between 00:00 and 24:00');
+                return;
+            }
+
+            // Create event div
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            const durationMin = endMin - startMin;
+            eventDiv.style.top = startMin + 'px';
+            eventDiv.style.height = durationMin + 'px';
+            eventDiv.innerHTML = `<strong>${title}</strong><br>${minutesToTime(startMin)} – ${minutesToTime(endMin)}<span class="remove" onclick="event.stopPropagation(); this.parentElement.remove();">&times;</span>`;
+            container.appendChild(eventDiv);
+        }
+    </script>
+</body>
+</html>
+ *@
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Weekly Calendar – Sticky Headers & Scrolling</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            padding: 1rem;
+            background-color: #f4f4f4;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;   /* prevents body scroll */
+        }
+
+        /* Calendar wrapper with scrollbars */
+        .calendar-wrapper {
+            flex: 1;
+            overflow: auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            position: relative;
+        }
+
+        /* The calendar grid itself */
+        .calendar {
+            display: flex;
+            flex-direction: column;
+            min-width: max-content;   /* ensures horizontal scroll appears */
+        }
+
+        /* Header row: sticky top */
+        .calendar-header {
+            display: grid;
+            grid-template-columns: 120px repeat(24, 80px);
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+            font-weight: bold;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background-color: #f8f9fa;
+        }
+
+        .header-cell {
+            padding: 0.75rem 0;
+            border-right: 1px solid #e9ecef;
+        }
+
+        /* Each day row */
+        .calendar-row {
+            display: grid;
+            grid-template-columns: 120px repeat(24, 80px);
+            border-bottom: 1px solid #dee2e6;
+            position: relative;
+        }
+
+        /* Day label: sticky left and on top of events */
+        .day-label {
+            background-color: #f8f9fa;
+            padding: 0.75rem;
+            font-weight: bold;
+            border-right: 2px solid #dee2e6;
+            position: sticky;
+            left: 0;
+            background-color: white;
+            z-index: 3;
+        }
+
+        /* Each hour cell (background) */
+        .hour-cell {
+            border-right: 1px solid #e9ecef;
+            border-bottom: 1px solid #f0f0f0;
+            height: 80px;
+            background: #fff;
+        }
+
+        /* Event container: positioned relative, spans all hour columns */
+        .row-events {
+            position: relative;
+            grid-column: 2 / span 24;
+            grid-row: 1;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        /* Event style */
+        .event {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            background-color: #4a9eff;
+            border-left: 3px solid #0066cc;
+            border-radius: 4px;
+            padding: 4px 6px;
+            color: white;
+            font-size: 12px;
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            pointer-events: auto;
+            z-index: 2;
+        }
+        .event:hover {
+            background-color: #2b7bcf;
+        }
+        .event .remove {
+            float: right;
+            font-weight: bold;
+            margin-left: 6px;
+            cursor: pointer;
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            width: 18px;
+            text-align: center;
+        }
+
+        /* Add panel */
+        .add-panel {
+            margin-top: 1rem;
+            padding: 1.5rem;
+            background: #f1f3f5;
+            border-radius: 8px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+            justify-content: center;
+        }
+        .add-panel .field {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+        .add-panel label {
+            font-weight: bold;
+            font-size: 0.85rem;
+        }
+        .add-panel input, .add-panel select, .add-panel button {
+            padding: 0.5rem;
+            font-size: 1rem;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+        }
+        .add-panel button {
+            background-color: #007bff;
+            color: white;
+            cursor: pointer;
+            border: none;
+            padding: 0.5rem 1.5rem;
+        }
+        .add-panel button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="calendar-wrapper">
+        <div class="calendar">
+            <!-- Header row -->
+            <div class="calendar-header">
+                <div class="header-cell"></div>
+                @for (int hour = 0; hour < 24; hour++)
+                {
+                    <div class="header-cell">@hour.ToString("00"):00</div>
+                }
+            </div>
+
+            <!-- Days rows -->
+            @{
+                string[] days = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
+                for (int dayIndex = 0; dayIndex < days.Length; dayIndex++)
+                {
+                    <div class="calendar-row" data-day="@dayIndex">
+                        <div class="day-label">@days[dayIndex]</div>
+                        @for (int hour = 0; hour < 24; hour++)
+                        {
+                            <div class="hour-cell" data-hour="@hour"></div>
+                        }
+                        <div class="row-events" id="eventsRow_@dayIndex"></div>
+                    </div>
+                }
+            }
+        </div>
+    </div>
+
+    <!-- Add Event Panel -->
+    <div class="add-panel">
+        <div class="field">
+            <label>Day</label>
+            <select id="daySelect">
+                @for (int i = 0; i < days.Length; i++)
+                {
+                    <option value="@i">@days[i]</option>
+                }
+            </select>
+        </div>
+        <div class="field">
+            <label>Start Time</label>
+            <input type="time" id="startTime" step="60" value="09:00" />
+        </div>
+        <div class="field">
+            <label>End Time</label>
+            <input type="time" id="endTime" step="60" value="10:00" />
+        </div>
+        <div class="field">
+            <label>Event Title</label>
+            <input type="text" id="eventTitle" placeholder="Meeting, etc." value="Event" />
+        </div>
+        <div class="field">
+            <button onclick="addEvent()">+ Add Event</button>
+        </div>
+    </div>
+
+    <script>
+        function timeToMinutes(timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            return hours * 60 + minutes;
+        }
+
+        function minutesToTime(minutes) {
+            const h = Math.floor(minutes / 60);
+            const m = minutes % 60;
+            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+        }
+
+        function addEvent() {
+            const daySelect = document.getElementById('daySelect');
+            const dayIndex = parseInt(daySelect.value, 10);
+            const eventsContainer = document.getElementById(`eventsRow_${dayIndex}`);
+            if (!eventsContainer) return;
+
+            const startTimeStr = document.getElementById('startTime').value;
+            const endTimeStr = document.getElementById('endTime').value;
+            const title = document.getElementById('eventTitle').value.trim() || 'Event';
+
+            if (!startTimeStr || !endTimeStr) {
+                alert('Please fill start and end times.');
+                return;
+            }
+
+            const startMin = timeToMinutes(startTimeStr);
+            let endMin = timeToMinutes(endTimeStr);
+            if (endMin <= startMin) {
+                alert('End time must be after start time.');
+                return;
+            }
+            if (startMin < 0 || endMin > 1440) {
+                alert('Times must be between 00:00 and 24:00');
+                return;
+            }
+
+            const totalMinutes = 24 * 60;
+            const leftPercent = (startMin / totalMinutes) * 100;
+            const widthPercent = ((endMin - startMin) / totalMinutes) * 100;
+
+            const eventDiv = document.createElement('div');
+            eventDiv.className = 'event';
+            eventDiv.style.left = leftPercent + '%';
+            eventDiv.style.width = widthPercent + '%';
+            eventDiv.innerHTML = `<strong>${title}</strong> ${minutesToTime(startMin)}–${minutesToTime(endMin)}<span class="remove" onclick="event.stopPropagation(); this.parentElement.remove();">&times;</span>`;
+            eventDiv.setAttribute('data-start', startMin);
+            eventDiv.setAttribute('data-end', endMin);
+
+            eventsContainer.appendChild(eventDiv);
+        }
+    </script>
+</body>
+</html>

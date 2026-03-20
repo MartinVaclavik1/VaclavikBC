@@ -81,7 +81,9 @@
         public int Id { get; set; }
         public string Title { get; set; } //summary
         public String TimeZone { get; set; }
-        public DateTime Start { get; set; }
+        public DateTime Start { get; set; } //Možnost, že bude jen Date (celodenní) =>
+                                            //v tom případě nastavit time 0:00 a end na 23:59
+                                            //nebo 
         public DateTime End { get; set; }
         public string? RRULE { get; set; }
         /*
