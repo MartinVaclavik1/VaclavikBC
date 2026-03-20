@@ -361,3 +361,6 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/VaclavikBC/vystup.txt
+/VaclavikBC/vystup_single.txt
+/VaclavikBC/vystup_singleFalse.txt
