@@ -743,14 +743,12 @@
 </body>
 </html> *@
 
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weekly Calendar – Row Alignment Fixed</title>
+    <title>Weekly Calendar – Stacked Events & Sticky Corner</title>
     <style>
         * {
             margin: 0;
@@ -768,12 +766,94 @@
             overflow: hidden;
         }
 
+        /* Top bar */
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .hamburger-container {
+            flex-shrink: 0;
+        }
+
+        .week-controls {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+            padding: 0.7rem 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            flex: 1;
+            max-width: 700px;
+            margin: 0 auto;
+        }
+
+        .nav-group {
+            display: flex;
+            gap: 0.6rem;
+            align-items: center;
+        }
+
+        .nav-btn {
+            background: #f0f2f5;
+            border: none;
+            font-size: 1rem;
+            font-weight: bold;
+            padding: 0.45rem 1rem;
+            border-radius: 40px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            color: #1e2a3a;
+        }
+
+            .nav-btn:hover {
+                background: #e2e6ea;
+                transform: scale(0.97);
+            }
+
+        .week-info {
+            background: #eef2ff;
+            padding: 0.45rem 1.2rem;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #0b2b4f;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .week-info:hover {
+                background: #e0e7ff;
+            }
+
+            .week-info span {
+                font-weight: 700;
+                color: #0056b3;
+            }
+
+        #hiddenWeekPicker {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+            width: 0;
+            height: 0;
+        }
+
         .calendar-wrapper {
             flex: 1;
             overflow: auto;
             background: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-top: 0.5rem;
         }
 
         .calendar {
@@ -785,50 +865,76 @@
         /* Header row */
         .calendar-header {
             display: grid;
-            grid-template-columns: 120px repeat(24, 80px);
-            background-color: #f8f9fa;
+            grid-template-columns: 140px repeat(24, 80px);
+            background-color: #f8fafc;
             border-bottom: 1px solid #dee2e6;
             font-weight: bold;
             text-align: center;
             position: sticky;
             top: 0;
-            z-index: 10;
+            z-index: 21; /* behind the sticky corner cell (which has higher z-index) */
+            font-size: 0.85rem;
         }
 
         .header-cell {
             padding: 0.75rem 0;
             border-right: 1px solid #dee2e6;
-        }
-        .header-cell:first-child {
-            border-left: 1px solid #dee2e6;
+            background-color: #f8fafc;
         }
 
-        /* Each day row */
+            .header-cell:first-child {
+                border-left: 1px solid #dee2e6;
+                position: sticky;
+                left: 0;
+                z-index: 30; /* higher than header row, hides hour labels when scrolling */
+                background-color: #f8fafc;
+                box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+            }
+
+        /* Day rows */
         .calendar-row {
             display: grid;
-            grid-template-columns: 120px repeat(24, 80px);
+            grid-template-columns: 140px repeat(24, 80px);
             position: relative;
-            min-height: 80px;
+            min-height: 85px; /* will be increased dynamically for stacked events */
         }
 
-        /* Day label – fills full row height, vertically centered */
+        /* Day label: sticky, centered, higher z-index to overlay time cells & events */
         .day-label {
-            background-color: #f8f9fa;
-            padding: 0.75rem;
-            font-weight: bold;
+            background-color: #ffffff;
+            padding: 0.5rem;
+            font-weight: 700;
             border-right: 1px solid #dee2e6;
             border-bottom: 1px solid #dee2e6;
             border-left: 1px solid #dee2e6;
             position: sticky;
             left: 0;
-            background-color: white;
-            z-index: 3;
+            z-index: 25; /* above events and hour cells */
             display: flex;
+            flex-direction: column;
+            justify-content: center;
             align-items: center;
-            height: 100%;
+            text-align: center;
+            gap: 6px;
+            background-color: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.05);
         }
 
-        /* Hour cell – fill full row height */
+        .day-name {
+            font-size: 1rem;
+            color: #0f172a;
+            font-weight: 700;
+        }
+
+        .day-date {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: #2c3e66;
+            background: #eef2ff;
+            padding: 3px 10px;
+            border-radius: 30px;
+        }
+
         .hour-cell {
             border-right: 1px solid #dee2e6;
             border-bottom: 1px solid #dee2e6;
@@ -836,193 +942,470 @@
             height: 100%;
         }
 
-        /* Events are absolutely positioned relative to the row, not part of grid */
+        /* Events container: absolute layer for time-based horizontal positioning */
         .row-events {
             position: absolute;
             top: 0;
-            left: 120px;        /* start after day label column */
+            left: 140px;
             right: 0;
             bottom: 0;
             pointer-events: none;
         }
 
+        /* Event styling – now with dynamic top/height instead of full height */
         .event {
             position: absolute;
-            top: 0;
-            bottom: 0;
             background-color: #4a9eff;
             border-left: 3px solid #0066cc;
-            border-radius: 4px;
-            padding: 4px 6px;
+            border-radius: 6px;
+            padding: 2px 6px;
             color: white;
-            font-size: 12px;
+            font-size: 11px;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
             cursor: pointer;
-            box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.12);
             pointer-events: auto;
-            z-index: 2;
+            transition: background 0.1s;
+            line-height: 1.3;
+            min-width: 30px;
         }
-        .event:hover {
-            background-color: #2b7bcf;
-        }
-        .event .remove {
-            float: right;
-            font-weight: bold;
-            margin-left: 6px;
-            cursor: pointer;
-            background: rgba(0,0,0,0.2);
-            border-radius: 12px;
-            width: 18px;
-            text-align: center;
-        }
+
+            .event:hover {
+                background-color: #2b7bcf;
+            }
+
+            .event .remove {
+                float: right;
+                font-weight: bold;
+                margin-left: 6px;
+                cursor: pointer;
+                background: rgba(0,0,0,0.25);
+                border-radius: 20px;
+                width: 18px;
+                text-align: center;
+                font-size: 12px;
+            }
 
         .add-panel {
             margin-top: 1rem;
-            padding: 1.5rem;
-            background: #f1f3f5;
-            border-radius: 8px;
+            padding: 1.2rem 1.5rem;
+            background: #ffffffea;
+            border-radius: 20px;
             display: flex;
             flex-wrap: wrap;
             gap: 1rem;
             align-items: flex-end;
             justify-content: center;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
-        .add-panel .field {
-            display: flex;
-            flex-direction: column;
-            gap: 0.3rem;
-        }
-        .add-panel label {
-            font-weight: bold;
-            font-size: 0.85rem;
-        }
-        .add-panel input, .add-panel select, .add-panel button {
-            padding: 0.5rem;
-            font-size: 1rem;
-            border: 1px solid #ced4da;
-            border-radius: 4px;
-        }
-        .add-panel button {
-            background-color: #007bff;
-            color: white;
-            cursor: pointer;
-            border: none;
-            padding: 0.5rem 1.5rem;
-        }
-        .add-panel button:hover {
-            background-color: #0056b3;
-        }
+
+            .add-panel .field {
+                display: flex;
+                flex-direction: column;
+                gap: 0.4rem;
+            }
+
+            .add-panel label {
+                font-weight: 700;
+                font-size: 0.75rem;
+                color: #334155;
+            }
+
+            .add-panel input, .add-panel select, .add-panel button {
+                padding: 0.55rem 0.9rem;
+                font-size: 0.9rem;
+                border: 1px solid #cbd5e1;
+                border-radius: 12px;
+                background: white;
+            }
+
+            .add-panel button {
+                background-color: #007bff;
+                color: white;
+                cursor: pointer;
+                border: none;
+                font-weight: bold;
+                padding: 0.55rem 1.8rem;
+            }
+
+                .add-panel button:hover {
+                    background-color: #0056b3;
+                }
     </style>
 </head>
 <body>
-    <div class="calendar-wrapper">
-        <div class="calendar">
-            <div class="calendar-header">
-                <div class="header-cell"></div>
-                @for (int hour = 0; hour < 24; hour++)
-                {
-                    <div class="header-cell">@hour.ToString("00"):00</div>
-                }
-            </div>
 
-            @{
-                string[] days = { "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday" };
-                for (int dayIndex = 0; dayIndex < days.Length; dayIndex++)
-                {
-                    <div class="calendar-row" data-day="@dayIndex">
-                        <div class="day-label">@days[dayIndex]</div>
-                        @for (int hour = 0; hour < 24; hour++)
-                        {
-                            <div class="hour-cell" data-hour="@hour"></div>
-                        }
-                        <div class="row-events" id="eventsRow_@dayIndex"></div>
-                    </div>
-                }
-            }
+    <div class="top-bar">
+        <div></div>
+        <div class="week-controls">
+            <div class="nav-group">
+                <button class="nav-btn" id="prevWeekBtn">◀ Prev week</button>
+            </div>
+            <div class="week-info" id="weekInfoTrigger">
+                <span id="weekRangeText">—</span>
+                <span>📅</span>
+            </div>
+            <div class="nav-group">
+                <button class="nav-btn" id="nextWeekBtn">Next week ▶</button>
+            </div>
         </div>
+        <div class="hamburger-container">
+            <partial name="_HamburgerMenu" />
+        </div>
+    </div>
+
+    <input type="week" id="hiddenWeekPicker" />
+
+    <div class="calendar-wrapper">
+        <div class="calendar" id="calendarGrid"></div>
     </div>
 
     <div class="add-panel">
         <div class="field">
-            <label>Day</label>
+            <label>📅 Day</label>
             <select id="daySelect">
-                @for (int i = 0; i < days.Length; i++)
-                {
-                    <option value="@i">@days[i]</option>
-                }
+                <option value="0">Monday</option>
+                <option value="1">Tuesday</option>
+                <option value="2">Wednesday</option>
+                <option value="3">Thursday</option>
+                <option value="4">Friday</option>
+                <option value="5">Saturday</option>
+                <option value="6">Sunday</option>
             </select>
         </div>
         <div class="field">
-            <label>Start Time</label>
+            <label>⏱️ Start Time</label>
             <input type="time" id="startTime" step="60" value="09:00" />
         </div>
         <div class="field">
-            <label>End Time</label>
+            <label>⏲️ End Time</label>
             <input type="time" id="endTime" step="60" value="10:00" />
         </div>
         <div class="field">
-            <label>Event Title</label>
-            <input type="text" id="eventTitle" placeholder="Meeting, etc." value="Event" />
+            <label>📝 Title</label>
+            <input type="text" id="eventTitle" placeholder="Meeting" value="Team sync" />
         </div>
         <div class="field">
-            <button onclick="addEvent()">+ Add Event</button>
+            <button id="addEventBtn">+ Add Event</button>
         </div>
     </div>
 
     <script>
-        function timeToMinutes(timeStr) {
-            const [hours, minutes] = timeStr.split(':').map(Number);
-            return hours * 60 + minutes;
-        }
+        // ---------- GLOBAL STATE ----------
+        let eventsByDate = {};          // key: "YYYY-MM-DD", value: array of events { id, startMin, endMin, title }
+        let currentWeekStart = null;    // Monday date
 
+        // ---------- HELPERS ----------
+        function formatDateDDMMYYYY(date) {
+            const d = new Date(date);
+            return `${d.getDate().toString().padStart(2,'0')}.${(d.getMonth()+1).toString().padStart(2,'0')}.${d.getFullYear()}`;
+        }
+        function formatYMD(date) {
+            const d = new Date(date);
+            return `${d.getFullYear()}-${(d.getMonth()+1).toString().padStart(2,'0')}-${d.getDate().toString().padStart(2,'0')}`;
+        }
+        function getMondayOfWeek(date) {
+            const d = new Date(date);
+            d.setHours(0,0,0,0);
+            const day = d.getDay();
+            const diff = (day === 0 ? 6 : day - 1);
+            d.setDate(d.getDate() - diff);
+            return d;
+        }
+        function getWeekDates(mondayDate) {
+            const dates = [];
+            for (let i = 0; i < 7; i++) {
+                const d = new Date(mondayDate);
+                d.setDate(mondayDate.getDate() + i);
+                dates.push(d);
+            }
+            return dates;
+        }
+        function updateWeekInfoDisplay(weekStart) {
+            const weekDates = getWeekDates(weekStart);
+            const range = `${formatDateDDMMYYYY(weekDates[0])} – ${formatDateDDMMYYYY(weekDates[6])}`;
+            const span = document.getElementById('weekRangeText');
+            if (span) span.innerText = range;
+        }
         function minutesToTime(minutes) {
             const h = Math.floor(minutes / 60);
             const m = minutes % 60;
-            return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+            return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}`;
+        }
+        function timeToMinutes(timeStr) {
+            const [h,m] = timeStr.split(':').map(Number);
+            return h * 60 + m;
+        }
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
         }
 
-        function addEvent() {
-            const daySelect = document.getElementById('daySelect');
-            const dayIndex = parseInt(daySelect.value, 10);
-            const eventsContainer = document.getElementById(`eventsRow_${dayIndex}`);
+        // ----- OVERLAP TRACK ASSIGNMENT (for vertical stacking) -----
+        // Assign each event a track index (0..maxTracks-1) so overlapping events get different tracks.
+        // Returns { eventsWithTracks, maxTracks }
+        function assignTracks(events) {
+            if (!events.length) return { eventsWithTracks: [], maxTracks: 0 };
+            // Sort by start time, then by duration (longer first for stability)
+            const sorted = [...events].sort((a,b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
+            const tracks = []; // each track is array of events (only need end time for conflict check)
+            const result = [];
+
+            for (const ev of sorted) {
+                let placed = false;
+                for (let t = 0; t < tracks.length; t++) {
+                    const lastEnd = tracks[t].reduce((max, e) => Math.max(max, e.endMin), -Infinity);
+                    if (lastEnd <= ev.startMin) { // no overlap with any event in this track
+                        tracks[t].push(ev);
+                        result.push({ ...ev, track: t });
+                        placed = true;
+                        break;
+                    }
+                }
+                if (!placed) {
+                    tracks.push([ev]);
+                    result.push({ ...ev, track: tracks.length - 1 });
+                }
+            }
+            const maxTracks = tracks.length;
+            return { eventsWithTracks: result, maxTracks };
+        }
+
+        // Delete event
+        function deleteEventById(dateKey, eventId) {
+            if (!eventsByDate[dateKey]) return;
+            eventsByDate[dateKey] = eventsByDate[dateKey].filter(ev => ev.id !== eventId);
+            if (eventsByDate[dateKey].length === 0) delete eventsByDate[dateKey];
+            renderCalendar(); // full refresh
+        }
+
+        // Populate events for a single row using track assignment & dynamic row height
+        function populateEventsForRow(rowElement, dateKey) {
+            const eventsContainer = rowElement.querySelector('.row-events');
             if (!eventsContainer) return;
+            eventsContainer.innerHTML = '';
+            const eventsList = eventsByDate[dateKey] || [];
+            if (eventsList.length === 0) {
+                rowElement.style.minHeight = ''; // reset to default 85px
+                return;
+            }
+
+            const { eventsWithTracks, maxTracks } = assignTracks(eventsList);
+            const totalMinutes = 24 * 60;
+            const TRACK_HEIGHT_PX = 28;     // height per stacked event
+            const rowMinHeight = Math.max(85, maxTracks * TRACK_HEIGHT_PX + 8);
+            rowElement.style.minHeight = `${rowMinHeight}px`;
+
+            for (const ev of eventsWithTracks) {
+                const leftPercent = (ev.startMin / totalMinutes) * 100;
+                const widthPercent = ((ev.endMin - ev.startMin) / totalMinutes) * 100;
+                const topPx = ev.track * TRACK_HEIGHT_PX;
+                const eventDiv = document.createElement('div');
+                eventDiv.className = 'event';
+                eventDiv.style.left = `${leftPercent}%`;
+                eventDiv.style.width = `${widthPercent}%`;
+                eventDiv.style.top = `${topPx}px`;
+                eventDiv.style.height = `${TRACK_HEIGHT_PX - 2}px`; // small gap
+                eventDiv.innerHTML = `
+                    <strong>${escapeHtml(ev.title)}</strong> ${minutesToTime(ev.startMin)}–${minutesToTime(ev.endMin)}
+                    <span class="remove" data-event-id="${ev.id}" data-date-key="${dateKey}">&times;</span>
+                `;
+                const removeSpan = eventDiv.querySelector('.remove');
+                if (removeSpan) {
+                    removeSpan.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        deleteEventById(removeSpan.getAttribute('data-date-key'), removeSpan.getAttribute('data-event-id'));
+                    });
+                }
+                eventsContainer.appendChild(eventDiv);
+            }
+        }
+
+        // Render full calendar grid
+        function renderCalendar() {
+            const calendarGrid = document.getElementById('calendarGrid');
+            if (!calendarGrid) return;
+            calendarGrid.innerHTML = '';
+
+            // Header row
+            const headerRow = document.createElement('div');
+            headerRow.className = 'calendar-header';
+            const emptyCorner = document.createElement('div');
+            emptyCorner.className = 'header-cell';
+            emptyCorner.innerText = '';
+            headerRow.appendChild(emptyCorner);
+            for (let hour = 0; hour < 24; hour++) {
+                const hourCell = document.createElement('div');
+                hourCell.className = 'header-cell';
+                hourCell.innerText = `${hour.toString().padStart(2,'0')}:00`;
+                headerRow.appendChild(hourCell);
+            }
+            calendarGrid.appendChild(headerRow);
+
+            // Day rows
+            const weekDates = getWeekDates(currentWeekStart);
+            const weekdayNames = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+
+            for (let i = 0; i < 7; i++) {
+                const currentDate = weekDates[i];
+                const dateKey = formatYMD(currentDate);
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'calendar-row';
+                rowDiv.setAttribute('data-date', dateKey);
+
+                // Day label (centered)
+                const dayLabel = document.createElement('div');
+                dayLabel.className = 'day-label';
+                dayLabel.innerHTML = `
+                    <div class="day-name">${weekdayNames[i]}</div>
+                    <div class="day-date">${formatDateDDMMYYYY(currentDate)}</div>
+                `;
+                rowDiv.appendChild(dayLabel);
+
+                // 24 hour cells
+                for (let hour = 0; hour < 24; hour++) {
+                    const hourCell = document.createElement('div');
+                    hourCell.className = 'hour-cell';
+                    hourCell.setAttribute('data-hour', hour);
+                    rowDiv.appendChild(hourCell);
+                }
+
+                // Events container
+                const eventsContainer = document.createElement('div');
+                eventsContainer.className = 'row-events';
+                eventsContainer.id = `eventsRow_${dateKey}`;
+                rowDiv.appendChild(eventsContainer);
+                calendarGrid.appendChild(rowDiv);
+            }
+
+            // Populate events for each row (after rows exist)
+            const allRows = document.querySelectorAll('.calendar-row');
+            for (let row of allRows) {
+                const dateAttr = row.getAttribute('data-date');
+                if (dateAttr) populateEventsForRow(row, dateAttr);
+            }
+        }
+
+        // Add event from UI
+        function addEventFromUI() {
+            const daySelect = document.getElementById('daySelect');
+            const selectedDayIndex = parseInt(daySelect.value, 10);
+            const weekDates = getWeekDates(currentWeekStart);
+            if (selectedDayIndex < 0 || selectedDayIndex >= weekDates.length) return;
+            const targetDate = weekDates[selectedDayIndex];
+            const dateKey = formatYMD(targetDate);
 
             const startTimeStr = document.getElementById('startTime').value;
             const endTimeStr = document.getElementById('endTime').value;
-            const title = document.getElementById('eventTitle').value.trim() || 'Event';
+            let title = document.getElementById('eventTitle').value.trim();
+            if (!title) title = 'Event';
 
-            if (!startTimeStr || !endTimeStr) {
-                alert('Please fill start and end times.');
-                return;
-            }
-
+            if (!startTimeStr || !endTimeStr) { alert('Enter start and end time'); return; }
             const startMin = timeToMinutes(startTimeStr);
             let endMin = timeToMinutes(endTimeStr);
-            if (endMin <= startMin) {
-                alert('End time must be after start time.');
-                return;
-            }
-            if (startMin < 0 || endMin > 1440) {
-                alert('Times must be between 00:00 and 24:00');
-                return;
-            }
+            if (endMin <= startMin) { alert('End after start'); return; }
+            if (startMin < 0 || endMin > 1440) { alert('Times 00:00–24:00'); return; }
 
-            const totalMinutes = 24 * 60;
-            const leftPercent = (startMin / totalMinutes) * 100;
-            const widthPercent = ((endMin - startMin) / totalMinutes) * 100;
-
-            const eventDiv = document.createElement('div');
-            eventDiv.className = 'event';
-            eventDiv.style.left = leftPercent + '%';
-            eventDiv.style.width = widthPercent + '%';
-            eventDiv.innerHTML = `<strong>${title}</strong> ${minutesToTime(startMin)}–${minutesToTime(endMin)}<span class="remove" onclick="event.stopPropagation(); this.parentElement.remove();">&times;</span>`;
-            eventDiv.setAttribute('data-start', startMin);
-            eventDiv.setAttribute('data-end', endMin);
-
-            eventsContainer.appendChild(eventDiv);
+            const eventId = Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+            const newEvent = { id: eventId, startMin, endMin, title };
+            if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
+            eventsByDate[dateKey].push(newEvent);
+            renderCalendar();
         }
+
+        function navigateWeek(delta) {
+            const newMonday = new Date(currentWeekStart);
+            newMonday.setDate(currentWeekStart.getDate() + delta * 7);
+            currentWeekStart = newMonday;
+            updateWeekInfoDisplay(currentWeekStart);
+            renderCalendar();
+        }
+
+        // Week picker (click on date range)
+        function getWeekNumber(date) {
+            const d = new Date(date);
+            d.setHours(0,0,0);
+            d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+            const week1 = new Date(d.getFullYear(), 0, 4);
+            return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+        }
+        function openWeekPicker() {
+            const picker = document.getElementById('hiddenWeekPicker');
+            if (!picker) return;
+            const year = currentWeekStart.getFullYear();
+            const week = getWeekNumber(currentWeekStart);
+            picker.value = `${year}-W${week.toString().padStart(2,'0')}`;
+            picker.style.position = 'absolute';
+            picker.style.opacity = '0';
+            picker.style.pointerEvents = 'auto';
+            picker.style.width = 'auto';
+            picker.style.height = 'auto';
+            picker.focus();
+            picker.click();
+            picker.addEventListener('change', (e) => {
+                const val = e.target.value;
+                if (val) {
+                    const match = val.match(/^(\d{4})-W(\d{1,2})$/);
+                    if (match) {
+                        const year = parseInt(match[1],10);
+                        const week = parseInt(match[2],10);
+                        const janFirst = new Date(year, 0, 1);
+                        const firstMonday = getMondayOfWeek(janFirst);
+                        const mondayDate = new Date(firstMonday);
+                        mondayDate.setDate(firstMonday.getDate() + (week-1)*7);
+                        currentWeekStart = getMondayOfWeek(mondayDate);
+                        updateWeekInfoDisplay(currentWeekStart);
+                        renderCalendar();
+                    }
+                }
+                picker.style.width = '0';
+                picker.style.height = '0';
+                picker.style.opacity = '0';
+                picker.style.pointerEvents = 'none';
+            }, { once: true });
+        }
+
+        // Sample events for current week
+        function addSampleEventsIfEmpty() {
+            const weekDates = getWeekDates(currentWeekStart);
+            let hasAny = false;
+            for (let d of weekDates) {
+                if (eventsByDate[formatYMD(d)]?.length) { hasAny = true; break; }
+            }
+            if (!hasAny) {
+                // Monday 10:00-11:00
+                const monKey = formatYMD(weekDates[0]);
+                eventsByDate[monKey] = [{ id: 'sample1', startMin: 600, endMin: 660, title: 'Weekly Planning' }];
+                // Wednesday 14:30-15:30
+                const wedKey = formatYMD(weekDates[2]);
+                eventsByDate[wedKey] = [{ id: 'sample2', startMin: 870, endMin: 930, title: 'Design Review' }];
+                // Friday 09:00-10:30 + overlapping event 09:30-11:00 to demonstrate stacking
+                const friKey = formatYMD(weekDates[4]);
+                eventsByDate[friKey] = [
+                    { id: 'fri1', startMin: 540, endMin: 630, title: 'Sprint Retro' },
+                    { id: 'fri2', startMin: 570, endMin: 660, title: 'Overlap meeting' },
+                    { id: 'fri3', startMin: 630, endMin: 720, title: 'Non-overlap' }
+                ];
+            }
+        }
+
+        // INIT
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date();
+            today.setHours(0,0,0);
+            currentWeekStart = getMondayOfWeek(today);
+            addSampleEventsIfEmpty();
+            updateWeekInfoDisplay(currentWeekStart);
+            renderCalendar();
+
+            document.getElementById('prevWeekBtn')?.addEventListener('click', () => navigateWeek(-1));
+            document.getElementById('nextWeekBtn')?.addEventListener('click', () => navigateWeek(1));
+            document.getElementById('weekInfoTrigger')?.addEventListener('click', openWeekPicker);
+            document.getElementById('addEventBtn')?.addEventListener('click', (e) => { e.preventDefault(); addEventFromUI(); });
+            document.getElementById('eventTitle')?.addEventListener('keypress', (e) => { if(e.key === 'Enter') addEventFromUI(); });
+        });
     </script>
 </body>
 </html>
