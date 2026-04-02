@@ -748,7 +748,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weekly Calendar – Stacked Events & Sticky Corner</title>
+    <title>Weekly Calendar – Full‑Height Events & Sticky Corner</title>
     <style>
         * {
             margin: 0;
@@ -766,7 +766,6 @@
             overflow: hidden;
         }
 
-        /* Top bar */
         .top-bar {
             display: flex;
             align-items: center;
@@ -862,7 +861,6 @@
             min-width: max-content;
         }
 
-        /* Header row */
         .calendar-header {
             display: grid;
             grid-template-columns: 140px repeat(24, 80px);
@@ -872,7 +870,7 @@
             text-align: center;
             position: sticky;
             top: 0;
-            z-index: 21; /* behind the sticky corner cell (which has higher z-index) */
+            z-index: 30;
             font-size: 0.85rem;
         }
 
@@ -886,20 +884,18 @@
                 border-left: 1px solid #dee2e6;
                 position: sticky;
                 left: 0;
-                z-index: 30; /* higher than header row, hides hour labels when scrolling */
+                z-index: 20;
                 background-color: #f8fafc;
                 box-shadow: 2px 0 5px rgba(0,0,0,0.05);
             }
 
-        /* Day rows */
         .calendar-row {
             display: grid;
             grid-template-columns: 140px repeat(24, 80px);
             position: relative;
-            min-height: 85px; /* will be increased dynamically for stacked events */
+            /* height will be set dynamically by JS */
         }
 
-        /* Day label: sticky, centered, higher z-index to overlay time cells & events */
         .day-label {
             background-color: #ffffff;
             padding: 0.5rem;
@@ -909,7 +905,7 @@
             border-left: 1px solid #dee2e6;
             position: sticky;
             left: 0;
-            z-index: 25; /* above events and hour cells */
+            z-index: 25;
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -942,7 +938,6 @@
             height: 100%;
         }
 
-        /* Events container: absolute layer for time-based horizontal positioning */
         .row-events {
             position: absolute;
             top: 0;
@@ -952,7 +947,6 @@
             pointer-events: none;
         }
 
-        /* Event styling – now with dynamic top/height instead of full height */
         .event {
             position: absolute;
             background-color: #4a9eff;
@@ -1094,8 +1088,8 @@
 
     <script>
         // ---------- GLOBAL STATE ----------
-        let eventsByDate = {};          // key: "YYYY-MM-DD", value: array of events { id, startMin, endMin, title }
-        let currentWeekStart = null;    // Monday date
+        let eventsByDate = {};
+        let currentWeekStart = null;
 
         // ---------- HELPERS ----------
         function formatDateDDMMYYYY(date) {
@@ -1143,21 +1137,17 @@
             return str.replace(/[&<>]/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[m]));
         }
 
-        // ----- OVERLAP TRACK ASSIGNMENT (for vertical stacking) -----
-        // Assign each event a track index (0..maxTracks-1) so overlapping events get different tracks.
-        // Returns { eventsWithTracks, maxTracks }
+        // ----- OVERLAP TRACK ASSIGNMENT -----
         function assignTracks(events) {
             if (!events.length) return { eventsWithTracks: [], maxTracks: 0 };
-            // Sort by start time, then by duration (longer first for stability)
             const sorted = [...events].sort((a,b) => a.startMin - b.startMin || (b.endMin - b.startMin) - (a.endMin - a.startMin));
-            const tracks = []; // each track is array of events (only need end time for conflict check)
+            const tracks = [];
             const result = [];
-
             for (const ev of sorted) {
                 let placed = false;
                 for (let t = 0; t < tracks.length; t++) {
                     const lastEnd = tracks[t].reduce((max, e) => Math.max(max, e.endMin), -Infinity);
-                    if (lastEnd <= ev.startMin) { // no overlap with any event in this track
+                    if (lastEnd <= ev.startMin) {
                         tracks[t].push(ev);
                         result.push({ ...ev, track: t });
                         placed = true;
@@ -1169,45 +1159,51 @@
                     result.push({ ...ev, track: tracks.length - 1 });
                 }
             }
-            const maxTracks = tracks.length;
-            return { eventsWithTracks: result, maxTracks };
+            return { eventsWithTracks: result, maxTracks: tracks.length };
         }
 
-        // Delete event
         function deleteEventById(dateKey, eventId) {
             if (!eventsByDate[dateKey]) return;
             eventsByDate[dateKey] = eventsByDate[dateKey].filter(ev => ev.id !== eventId);
             if (eventsByDate[dateKey].length === 0) delete eventsByDate[dateKey];
-            renderCalendar(); // full refresh
+            renderCalendar();
         }
 
-        // Populate events for a single row using track assignment & dynamic row height
+        // ----- ROW HEIGHT & EVENT POSITIONING (FULL VERTICAL FILL) -----
         function populateEventsForRow(rowElement, dateKey) {
             const eventsContainer = rowElement.querySelector('.row-events');
             if (!eventsContainer) return;
             eventsContainer.innerHTML = '';
             const eventsList = eventsByDate[dateKey] || [];
+
             if (eventsList.length === 0) {
-                rowElement.style.minHeight = ''; // reset to default 85px
+                rowElement.style.height = '';
+                rowElement.style.minHeight = '';
                 return;
             }
 
             const { eventsWithTracks, maxTracks } = assignTracks(eventsList);
+            // Compute row height: minimum 85px, but ensure each track gets at least 32px
+            const minTrackHeight = 32;
+            const computedRowHeight = Math.max(85, maxTracks * minTrackHeight);
+            rowElement.style.height = `${computedRowHeight}px`;
+            rowElement.style.minHeight = `${computedRowHeight}px`;
+
             const totalMinutes = 24 * 60;
-            const TRACK_HEIGHT_PX = 28;     // height per stacked event
-            const rowMinHeight = Math.max(85, maxTracks * TRACK_HEIGHT_PX + 8);
-            rowElement.style.minHeight = `${rowMinHeight}px`;
+            const trackHeight = computedRowHeight / maxTracks;  // equal share for each track
 
             for (const ev of eventsWithTracks) {
                 const leftPercent = (ev.startMin / totalMinutes) * 100;
                 const widthPercent = ((ev.endMin - ev.startMin) / totalMinutes) * 100;
-                const topPx = ev.track * TRACK_HEIGHT_PX;
+                const topPx = ev.track * trackHeight;
+                const heightPx = trackHeight - 2; // tiny gap between events
+
                 const eventDiv = document.createElement('div');
                 eventDiv.className = 'event';
                 eventDiv.style.left = `${leftPercent}%`;
                 eventDiv.style.width = `${widthPercent}%`;
                 eventDiv.style.top = `${topPx}px`;
-                eventDiv.style.height = `${TRACK_HEIGHT_PX - 2}px`; // small gap
+                eventDiv.style.height = `${heightPx}px`;
                 eventDiv.innerHTML = `
                     <strong>${escapeHtml(ev.title)}</strong> ${minutesToTime(ev.startMin)}–${minutesToTime(ev.endMin)}
                     <span class="remove" data-event-id="${ev.id}" data-date-key="${dateKey}">&times;</span>
@@ -1223,7 +1219,7 @@
             }
         }
 
-        // Render full calendar grid
+        // ----- RENDER FULL CALENDAR -----
         function renderCalendar() {
             const calendarGrid = document.getElementById('calendarGrid');
             if (!calendarGrid) return;
@@ -1255,7 +1251,6 @@
                 rowDiv.className = 'calendar-row';
                 rowDiv.setAttribute('data-date', dateKey);
 
-                // Day label (centered)
                 const dayLabel = document.createElement('div');
                 dayLabel.className = 'day-label';
                 dayLabel.innerHTML = `
@@ -1264,7 +1259,6 @@
                 `;
                 rowDiv.appendChild(dayLabel);
 
-                // 24 hour cells
                 for (let hour = 0; hour < 24; hour++) {
                     const hourCell = document.createElement('div');
                     hourCell.className = 'hour-cell';
@@ -1272,7 +1266,6 @@
                     rowDiv.appendChild(hourCell);
                 }
 
-                // Events container
                 const eventsContainer = document.createElement('div');
                 eventsContainer.className = 'row-events';
                 eventsContainer.id = `eventsRow_${dateKey}`;
@@ -1280,7 +1273,7 @@
                 calendarGrid.appendChild(rowDiv);
             }
 
-            // Populate events for each row (after rows exist)
+            // Populate events after rows exist
             const allRows = document.querySelectorAll('.calendar-row');
             for (let row of allRows) {
                 const dateAttr = row.getAttribute('data-date');
@@ -1288,7 +1281,7 @@
             }
         }
 
-        // Add event from UI
+        // ----- ADD EVENT FROM UI -----
         function addEventFromUI() {
             const daySelect = document.getElementById('daySelect');
             const selectedDayIndex = parseInt(daySelect.value, 10);
@@ -1315,6 +1308,7 @@
             renderCalendar();
         }
 
+        // ----- WEEK NAVIGATION & PICKER -----
         function navigateWeek(delta) {
             const newMonday = new Date(currentWeekStart);
             newMonday.setDate(currentWeekStart.getDate() + delta * 7);
@@ -1323,7 +1317,6 @@
             renderCalendar();
         }
 
-        // Week picker (click on date range)
         function getWeekNumber(date) {
             const d = new Date(date);
             d.setHours(0,0,0);
@@ -1331,6 +1324,7 @@
             const week1 = new Date(d.getFullYear(), 0, 4);
             return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
         }
+
         function openWeekPicker() {
             const picker = document.getElementById('hiddenWeekPicker');
             if (!picker) return;
@@ -1367,7 +1361,7 @@
             }, { once: true });
         }
 
-        // Sample events for current week
+        // ----- SAMPLE EVENTS (DEMO OVERLAPS) -----
         function addSampleEventsIfEmpty() {
             const weekDates = getWeekDates(currentWeekStart);
             let hasAny = false;
@@ -1375,23 +1369,26 @@
                 if (eventsByDate[formatYMD(d)]?.length) { hasAny = true; break; }
             }
             if (!hasAny) {
-                // Monday 10:00-11:00
+                // Monday: single event -> full height
                 const monKey = formatYMD(weekDates[0]);
                 eventsByDate[monKey] = [{ id: 'sample1', startMin: 600, endMin: 660, title: 'Weekly Planning' }];
-                // Wednesday 14:30-15:30
+                // Wednesday: two overlapping events -> share height
                 const wedKey = formatYMD(weekDates[2]);
-                eventsByDate[wedKey] = [{ id: 'sample2', startMin: 870, endMin: 930, title: 'Design Review' }];
-                // Friday 09:00-10:30 + overlapping event 09:30-11:00 to demonstrate stacking
+                eventsByDate[wedKey] = [
+                    { id: 'sample2', startMin: 540, endMin: 630, title: 'Design Review' },
+                    { id: 'sample3', startMin: 570, endMin: 660, title: 'Client Call' }
+                ];
+                // Friday: three events, two overlap + one later non-overlap -> tracks computed correctly
                 const friKey = formatYMD(weekDates[4]);
                 eventsByDate[friKey] = [
                     { id: 'fri1', startMin: 540, endMin: 630, title: 'Sprint Retro' },
                     { id: 'fri2', startMin: 570, endMin: 660, title: 'Overlap meeting' },
-                    { id: 'fri3', startMin: 630, endMin: 720, title: 'Non-overlap' }
+                    { id: 'fri3', startMin: 660, endMin: 720, title: 'Follow-up' }
                 ];
             }
         }
 
-        // INIT
+        // ----- INIT -----
         document.addEventListener('DOMContentLoaded', () => {
             const today = new Date();
             today.setHours(0,0,0);
