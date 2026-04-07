@@ -748,7 +748,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Weekly Calendar – Perfectly centered week picker (temporary input)</title>
+    <title>Weekly Calendar</title>
     <style>
         * {
             margin: 0;
@@ -1273,7 +1273,7 @@
             let endMin = timeToMinutes(endTimeStr);
             if (endMin <= startMin) { alert('End after start'); return; }
             if (startMin < 0 || endMin > 1440) { alert('Times 00:00–24:00'); return; }
-            const eventId = Date.now() + '-' + Math.random().toString(36).substr(2, 6);
+            const eventId = Date.now() + '-' + Math.random().toString(36).substring(2, 6);
             const newEvent = { id: eventId, startMin, endMin, title };
             if (!eventsByDate[dateKey]) eventsByDate[dateKey] = [];
             eventsByDate[dateKey].push(newEvent);
