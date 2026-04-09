@@ -1,4 +1,6 @@
-﻿namespace VaclavikBC.Models
+﻿using Newtonsoft.Json;
+
+namespace VaclavikBC.Models
 {
     public class Calendar
     {
@@ -14,18 +16,32 @@
            "selected": true,
            "accessRole": "owner"
         */
+        [JsonIgnore]
         public int Id { get; set; }
-        public string IDProvider { get; set; }  //když bude aktualizace, tak se bude kontrolovat id kalendáře
-                                                //a načtou se znovu jen eventy => selected zůstene stejný 
+        [JsonProperty("id")]
+        public string? IDProvider { get; set; } //např. u státních svátků se nenastavuje
+        [JsonProperty("summary")]
         public string Name { get; set; } //summary
+        [JsonProperty("timeZone")]
         public string TimeZone { get; set; } //příklad: Europe/prague
-        public string BackgroundColor { get; set; }
-        public string ForegroundColor { get; set; }
+        [JsonProperty("backgroundColor")]
+        public string? BackgroundColor { get; set; }
+        [JsonProperty("foregroundColor")]
+        public string? ForegroundColor { get; set; }
+        [JsonProperty("selected")]
         public bool Selected { get; set; }
+        [JsonProperty("items")]
         public List<CalendarEvent> Events { get; set; } = new List<CalendarEvent>();
-        public bool DontDeleteCheck { get; set; } //když se smaže v originálním kalendáři, tak se
-                                                  //při aktualizaci zeptá na smazání. Při další aktualizaci
-                                                  //se koukne na tuto podmínku a nezeptá se, protože bude
-                                                  //vědět, že se již ptal
+        [JsonIgnore]
+        public int CalendarConnectionId { get; set; }
+        [JsonIgnore]
+        public CalendarConnection CalendarConnection { get; set; }
+        public void SetEventsReference()
+        {
+            foreach (var kalendarEvent in Events)
+            {
+                kalendarEvent.Calendar = this;
+            }
+        }
     }
 }

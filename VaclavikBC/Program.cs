@@ -1,13 +1,24 @@
-using AspNet.Security.OAuth.Calendly;
+ï»¿using AspNet.Security.OAuth.Calendly;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Identity.Web;
+using VaclavikBC.Data;
+using Microsoft.Extensions.DependencyInjection;
+using VaclavikBC.Services.Interfaces;
+using VaclavikBC.Services;
+using VaclavikBC.Controllers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services.AddDbContext<VaclavikBCContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("VaclavikBCContext") ?? throw new InvalidOperationException("Connection string 'VaclavikBCContext' not found.")));
+
+builder.Services.AddScoped<ISyncService, SyncService>();
+builder.Services.AddScoped<GoogleController>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
@@ -32,7 +43,7 @@ CookieAuthenticationDefaults.AuthenticationScheme
         options.Scope.Add("https://www.googleapis.com/auth/calendar.readonly");
         options.SaveTokens = true; // Store tokens in the authentication properties
 
-        //umožní ukládat refresh token
+        //umoï¿½nï¿½ uklï¿½dat refresh token
         options.Events.OnRedirectToAuthorizationEndpoint = context =>
         {
             var url = context.RedirectUri;

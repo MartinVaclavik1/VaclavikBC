@@ -1,12 +1,21 @@
 ﻿using Azure.Core;
+using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
+using VaclavikBC.Models;
+using VaclavikBC.Services;
+using VaclavikBC.Services.Interfaces;
 
 namespace VaclavikBC.Controllers
 {
     public class GoogleController
     {
-        public static async void ZiskejData(string accessToken)
+        private readonly ISyncService _syncService;
+        public GoogleController(ISyncService syncService)
+        {
+            _syncService = syncService;
+        }
+        public async void ZiskejData(string accessToken)
         {
             using var client = new HttpClient();
 
@@ -16,10 +25,10 @@ namespace VaclavikBC.Controllers
             var response = await client.GetAsync(
                 "https://www.googleapis.com/calendar/v3/users/me/calendarList");
 
-            var content = await response.Content.ReadAsStringAsync();
+            var content = await response.Content.ReadAsStringAsync();   //next sync token s informacemi o kalendáři => id...
 
-            List<string> calendars = new();
-
+            List<string> calendars = new(); //název kalendáře
+            List<string> calendarInfo = new();
             if (JsonDocument.Parse(content).RootElement.TryGetProperty("items", out var items))
             {
                 for (int i = 0; i < items.GetArrayLength(); i++)
@@ -28,47 +37,55 @@ namespace VaclavikBC.Controllers
                     {
                         //Console.WriteLine(calendar);
                         calendars.Add(calendar.ToString());
+                        calendarInfo.Add(items[i].ToString());
                     }
                 }
 
             }
-            
-            //Console.WriteLine(content);
 
             string pageToken = null;
-            using (StreamWriter writer = new StreamWriter("vystup.txt"))
+
+
+            for (int i = 0; i < calendars.Count; i++)// var calendar in calendars)
             {
-                foreach (var calendar in calendars)
+                var calendar = calendars[i];
+                string json = "";
+                do
                 {
-                    do
+                    //https://www.googleapis.com/calendar/v3/calendars/{NAZEV KALENDARE (id)}/events    bcpracemartin@gmail.com
+                    var url = $"https://www.googleapis.com/calendar/v3/calendars/{Uri.EscapeDataString(calendar)}/events" +
+                    "?singleEvents=false";
+
+                    if (pageToken != null)
+                        url += $"&pageToken={pageToken}";
+
+                    var ulohy = await client.GetAsync(url);
+                    ulohy.EnsureSuccessStatusCode();
+
+                    json += await ulohy.Content.ReadAsStringAsync();
+
+
+
+                    using var doc = JsonDocument.Parse(json);
+
+                    if (doc.RootElement.TryGetProperty("nextPageToken", out var token))
                     {
-                        //https://www.googleapis.com/calendar/v3/calendars/{NAZEV KALENDARE (id)}/events    bcpracemartin@gmail.com
-                        var url = $"https://www.googleapis.com/calendar/v3/calendars/{Uri.EscapeDataString(calendar)}/events" +
-                        "?singleEvents=false";
+                        pageToken = token.GetString();
+                    }
+                    else { pageToken = null; }
 
-                        if (pageToken != null)
-                            url += $"&pageToken={pageToken}";
+                    //writer.WriteLine(json);
 
-                        var ulohy = await client.GetAsync(url);
-                        ulohy.EnsureSuccessStatusCode();
-
-                        var json = await ulohy.Content.ReadAsStringAsync();
-
-
-                        using var doc = JsonDocument.Parse(json);
+                } while (pageToken != null);
+                json = calendarInfo[i].Remove(calendarInfo[i].Length - 1) + "," + json.Remove(0, 1);  //smazání } a { 
+                Console.WriteLine(json);
+                Calendar kalendar = JsonConvert.DeserializeObject<Calendar>(json);
 
 
-                        if (doc.RootElement.TryGetProperty("nextPageToken", out var token))
-                        {
-                            pageToken = token.GetString();
-                        }
-                        else { pageToken = null; }
-
-                        //Console.WriteLine(json);
-                        writer.WriteLine(json);
-                    } while (pageToken != null);
-                }
+                kalendar?.SetEventsReference();
+                await _syncService.SyncCalendarDataAsync(kalendar);
             }
+
         }
     }
 

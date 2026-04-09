@@ -1,4 +1,8 @@
-﻿namespace VaclavikBC.Models
+﻿using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
+using System.ComponentModel.DataAnnotations;
+
+namespace VaclavikBC.Models
 {
     public class CalendarEvent
     {
@@ -78,14 +82,19 @@
        "eventType": "default"
       }
         */
+        [JsonIgnore]
         public int Id { get; set; }
-        public string Title { get; set; } //summary
-        public String TimeZone { get; set; }
-        public DateTime Start { get; set; } //Možnost, že bude jen Date (celodenní) =>
-                                            //v tom případě nastavit time 0:00 a end na 23:59
-                                            //nebo 
-        public DateTime End { get; set; }
-        public string? RRULE { get; set; }
+
+        //public String TimeZone { get; set; }
+        //[DataType(DataType.DateTime)]
+        //public DateTime Start { get; set; } //Možnost, že bude jen Date (celodenní) =>
+        //                                    //v tom případě nastavit time 0:00 a end na 23:59
+        //                                    //nebo 
+        //[DataType(DataType.DateTime)]
+        //public DateTime End { get; set; }
+        //public int CalendarId { get; set; }
+        //public Calendar Calendar { get; set; }
+        //public string? RRULE { get; set; }
         /*
          * "RRULE:FREQ=DAILY"
          * "RRULE:FREQ=WEEKLY;BYDAY=TU"
@@ -95,5 +104,57 @@
          * "RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20260617T215959Z;BYDAY=TU,TH,SU"
          * "RRULE:FREQ=MONTHLY;COUNT=13"
          */
+
+        [JsonProperty("id")]
+        public string ProviderId { get; set; }
+
+        [JsonProperty("summary")]
+        public string Title { get; set; }
+
+        [JsonProperty("start")]
+        public EventDateTime StartInfo { get; set; }
+
+        [JsonProperty("end")]
+        public EventDateTime EndInfo { get; set; }
+
+        [JsonProperty("recurrence")]
+        public List<string>? RecurrenceRules { get; set; }
+
+        // Computed properties for easy access
+        public DateTime Start => StartInfo?.GetDateTime() ?? DateTime.MinValue;
+        public DateTime End => EndInfo?.GetDateTime() ?? DateTime.MinValue;
+        public string TimeZone => StartInfo?.TimeZone ?? EndInfo?.TimeZone ?? "";
+
+        // Relational fields (not in JSON)
+        [JsonIgnore]
+        public int CalendarId { get; set; }
+        [JsonIgnore]
+        public Calendar Calendar { get; set; }
+
+        public string? RRULE => RecurrenceRules?.FirstOrDefault(r => r.StartsWith("RRULE:"))?.Substring(6);
+    }
+
+    [Owned]
+    public class EventDateTime
+    {
+        [JsonProperty("dateTime")]
+        [DataType(DataType.DateTime)]
+        public DateTimeOffset? DateTime { get; set; }   // Preserves offset
+
+        [JsonProperty("date")]
+        [DataType(DataType.Date)]
+        public DateTime? Date { get; set; }             // For all-day events
+
+        [JsonProperty("timeZone")]
+        public string? TimeZone { get; set; }
+
+        public DateTime GetDateTime()
+        {
+            if (DateTime.HasValue)
+                return DateTime.Value.LocalDateTime; // or .UtcDateTime
+            if (Date.HasValue)
+                return Date.Value;                   // All-day event
+            throw new InvalidOperationException("No date or dateTime provided");
+        }
     }
 }

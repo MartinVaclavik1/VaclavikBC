@@ -10,6 +10,13 @@
     public class AccountController : Controller
     {
         // provider = Google, Facebook, GitHub, Microsoft
+        private readonly GoogleController _googleController;
+
+        public AccountController(GoogleController googleController)
+        {
+            _googleController = googleController;
+        }
+
         public IActionResult OAuthLogin(string provider)
         {
             var props = new AuthenticationProperties
@@ -47,7 +54,7 @@
             }
             else if (provider == Providers.Google.ToString())
             {
-                GoogleController.ZiskejData(accessToken);
+                _googleController.ZiskejData(accessToken);
             }
             else if (provider == Providers.Microsoft.ToString())
             {
