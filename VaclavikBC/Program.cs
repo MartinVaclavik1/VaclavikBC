@@ -3,12 +3,13 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Identity.Web;
-using VaclavikBC.Data;
 using Microsoft.Extensions.DependencyInjection;
-using VaclavikBC.Services.Interfaces;
-using VaclavikBC.Services;
+using Microsoft.Identity.Web;
+using System.Text.Json.Serialization;
 using VaclavikBC.Controllers;
+using VaclavikBC.Data;
+using VaclavikBC.Services;
+using VaclavikBC.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,14 @@ builder.Services.AddScoped<GoogleController>();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddControllersWithViews();
+
+builder.Services.AddControllers()
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
+        // Optional: increase max depth if needed
+        options.JsonSerializerOptions.MaxDepth = 64;
+    });
 
 builder.Services.AddAuthentication(
 //    options =>
@@ -91,6 +100,7 @@ app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
 
+app.MapControllers();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}");

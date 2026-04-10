@@ -33,7 +33,7 @@ namespace VaclavikBC.Migrations
                     b.Property<string>("BackgroundColor")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("CalendarConnectionId")
+                    b.Property<int>("CalendarConnectionId")
                         .HasColumnType("int");
 
                     b.Property<string>("ForegroundColor")
@@ -44,6 +44,9 @@ namespace VaclavikBC.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("NextSyncToken")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("Selected")
@@ -78,10 +81,6 @@ namespace VaclavikBC.Migrations
 
                     b.Property<DateTime>("ExpirationTime")
                         .HasColumnType("datetime2");
-
-                    b.Property<string>("NextSyncToken")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Provider")
                         .IsRequired()
@@ -127,9 +126,13 @@ namespace VaclavikBC.Migrations
 
             modelBuilder.Entity("VaclavikBC.Models.Calendar", b =>
                 {
-                    b.HasOne("VaclavikBC.Models.CalendarConnection", null)
+                    b.HasOne("VaclavikBC.Models.CalendarConnection", "CalendarConnection")
                         .WithMany("Calendars")
-                        .HasForeignKey("CalendarConnectionId");
+                        .HasForeignKey("CalendarConnectionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CalendarConnection");
                 });
 
             modelBuilder.Entity("VaclavikBC.Models.CalendarEvent", b =>

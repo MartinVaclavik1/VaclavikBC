@@ -16,7 +16,6 @@ namespace VaclavikBC.Models
            "selected": true,
            "accessRole": "owner"
         */
-        [JsonIgnore]
         public int Id { get; set; }
         [JsonProperty("id")]
         public string? IDProvider { get; set; } //např. u státních svátků se nenastavuje
@@ -30,6 +29,8 @@ namespace VaclavikBC.Models
         public string? ForegroundColor { get; set; }
         [JsonProperty("selected")]
         public bool Selected { get; set; }
+        [JsonProperty("nextSyncToken")]
+        public string? NextSyncToken { get; set; }
         [JsonProperty("items")]
         public List<CalendarEvent> Events { get; set; } = new List<CalendarEvent>();
         [JsonIgnore]

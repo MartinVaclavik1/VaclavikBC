@@ -15,12 +15,12 @@ namespace VaclavikBC.Controllers
         {
             _syncService = syncService;
         }
-        public async void ZiskejData(string accessToken)
+        public async void ZiskejData(CalendarConnection callendarConnection)
         {
             using var client = new HttpClient();
 
             client.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", accessToken);
+                new AuthenticationHeaderValue("Bearer", callendarConnection.AccessToken);
 
             var response = await client.GetAsync(
                 "https://www.googleapis.com/calendar/v3/users/me/calendarList");
@@ -28,7 +28,7 @@ namespace VaclavikBC.Controllers
             var content = await response.Content.ReadAsStringAsync();   //next sync token s informacemi o kalendáři => id...
 
             List<string> calendars = new(); //název kalendáře
-            List<string> calendarInfo = new();
+            List<string> calendarInfo = new();  //info o kalendáři
             if (JsonDocument.Parse(content).RootElement.TryGetProperty("items", out var items))
             {
                 for (int i = 0; i < items.GetArrayLength(); i++)
@@ -81,13 +81,13 @@ namespace VaclavikBC.Controllers
                 Console.WriteLine(json);
                 Calendar kalendar = JsonConvert.DeserializeObject<Calendar>(json);
 
-
-                kalendar?.SetEventsReference();
-                await _syncService.SyncCalendarDataAsync(kalendar);
+                if (kalendar != null) { 
+                    callendarConnection.Calendars.Add(kalendar);
+                    kalendar.SetEventsReference();
+                }
             }
-
+            callendarConnection.SetCalendarsReference();
+            await _syncService.SyncCalendarConnectionAsync(callendarConnection);
         }
     }
-
-
 }

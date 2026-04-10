@@ -82,7 +82,6 @@ namespace VaclavikBC.Models
        "eventType": "default"
       }
         */
-        [JsonIgnore]
         public int Id { get; set; }
 
         //public String TimeZone { get; set; }

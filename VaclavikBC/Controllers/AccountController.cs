@@ -1,11 +1,13 @@
 ﻿namespace VaclavikBC.Controllers
 {
+    using Google.Apis.Calendar.v3.Data;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Mvc;
     using System.Net.Http.Headers;
     using System.Text.Json;
     using System.Text.Json.Serialization;
     using VaclavikBC.Enums;
+    using VaclavikBC.Models;
 
     public class AccountController : Controller
     {
@@ -44,9 +46,15 @@
             var email = claims?.FirstOrDefault(c => c.Type.Contains("email"))?.Value;
             var name = claims?.FirstOrDefault(c => c.Type.EndsWith("name"))?.Value; //ends with, protože je zde pole nameidentifier, které to triggerovalo
             var provider = result.Properties?.Items[".AuthScheme"];
-
-            //TODO přidat ukládání dat uživatele a tokenů
-            // DB.User.CreateOrLink(email, provider, providerUserId)
+           
+            CalendarConnection calendarConnection = new CalendarConnection
+            {
+                Email = email,
+                Provider = provider,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken,
+                ExpirationTime = DateTime.Parse(expiresAt)
+            };
 
             if (provider == null)
             {
@@ -54,7 +62,7 @@
             }
             else if (provider == Providers.Google.ToString())
             {
-                _googleController.ZiskejData(accessToken);
+                _googleController.ZiskejData(calendarConnection);
             }
             else if (provider == Providers.Microsoft.ToString())
             {

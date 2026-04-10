@@ -1,4 +1,7 @@
-﻿namespace VaclavikBC.Models
+﻿using Google.Apis.Calendar.v3.Data;
+using System.Text.Json.Serialization;
+
+namespace VaclavikBC.Models
 {
     /// <summary>
     /// ukládá připojení a informace k danému kalednářovému účtu
@@ -15,8 +18,15 @@
         public string Provider { get; set; } //Google/Microsoft..
         public string AccessToken { get; set; }
         public string RefreshToken { get; set; }
-        public string NextSyncToken { get; set; }
         public DateTime ExpirationTime { get; set; } //expires_at: 2026-03-20T14:06:58.6296591+00:00
         public List<Calendar> Calendars { get; set; } = new();
+
+        public void SetCalendarsReference()
+        {
+            foreach (var kalendarEvent in Calendars)
+            {
+                kalendarEvent.CalendarConnection = this;
+            }
+        }
     }
 }

@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace VaclavikBC.Migrations
 {
     /// <inheritdoc />
-    public partial class resetMigrace : Migration
+    public partial class NextPageTokenVCalendar : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -21,7 +21,6 @@ namespace VaclavikBC.Migrations
                     Provider = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     AccessToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    NextSyncToken = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     ExpirationTime = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
@@ -41,7 +40,8 @@ namespace VaclavikBC.Migrations
                     BackgroundColor = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     ForegroundColor = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Selected = table.Column<bool>(type: "bit", nullable: false),
-                    CalendarConnectionId = table.Column<int>(type: "int", nullable: true)
+                    NextSyncToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CalendarConnectionId = table.Column<int>(type: "int", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -50,7 +50,8 @@ namespace VaclavikBC.Migrations
                         name: "FK_Calendar_CalendarConnection_CalendarConnectionId",
                         column: x => x.CalendarConnectionId,
                         principalTable: "CalendarConnection",
-                        principalColumn: "Id");
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
