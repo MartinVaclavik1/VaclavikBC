@@ -257,6 +257,8 @@
 		cursor: pointer;
 		flex-wrap: wrap;
 		gap: 10px;
+		word-break: break-word;
+		overflow-wrap: break-word;
 	}
 
 	.connection-buttons {
@@ -437,7 +439,7 @@
 									<button class="delete-connection" data-id="${conn.id}">Delete</button>
 								</div>
 							</div>
-							<div class="calendars-list">`;
+							<div class="calendars-list" style="display: none;">`;
 				if (conn.calendars && conn.calendars.length) {
 					conn.calendars.forEach(cal => {
 						html += `<div class="calendar-item">
@@ -462,6 +464,17 @@
 	}
 
 	function attachEventListeners() {
+
+		document.querySelectorAll('.connection-header').forEach(header => {
+			header.addEventListener('click', (e) => {
+				if (e.target.tagName === 'BUTTON') return;
+				const calendarsList = header.nextElementSibling;
+				if (calendarsList) {
+					calendarsList.style.display = calendarsList.style.display === 'none' ? 'block' : 'none';
+				}
+			});
+		});
+
 		document.querySelectorAll('.refresh-connection').forEach(btn => {
 			btn.addEventListener('click', async (e) => {
 				e.stopPropagation();

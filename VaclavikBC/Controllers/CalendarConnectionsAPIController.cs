@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using VaclavikBC.Data;
+using VaclavikBC.Hubs;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -13,7 +15,13 @@ namespace VaclavikBC.Controllers
     {
 
         private readonly VaclavikBCContext _context;
-        public CalendarConnectionsAPIController(VaclavikBCContext context) => _context = context;
+        private readonly IHubContext<CalendarSyncHub> _hubContext;
+        public CalendarConnectionsAPIController(VaclavikBCContext context,
+            IHubContext<CalendarSyncHub> hubContext)
+        {
+            _context = context;
+            _hubContext = hubContext;
+        }
 
         [HttpGet]
         public async Task<IActionResult> GetUserConnections()
@@ -29,7 +37,9 @@ namespace VaclavikBC.Controllers
         [HttpPost("{id}/refresh")]
         public async Task<IActionResult> RefreshConnection(int id)
         {
+            //TODO vytvořit všechny notimplemented
             // Trigger sync for this connection (call your sync service)
+            throw new NotImplementedException();
             return Ok();
         }
 
@@ -41,6 +51,7 @@ namespace VaclavikBC.Controllers
             {
                 _context.CalendarConnection.Remove(conn);
                 await _context.SaveChangesAsync();
+                await _hubContext.Clients.All.SendAsync("ConnectionCreated", "Calendar data updated");
             }
             return Ok();
         }
@@ -49,6 +60,7 @@ namespace VaclavikBC.Controllers
         public async Task<IActionResult> RefreshCalendar(int calendarId)
         {
             // Sync only that calendar
+            throw new NotImplementedException();
             return Ok();
         }
 
@@ -56,6 +68,7 @@ namespace VaclavikBC.Controllers
         public async Task<IActionResult> ToggleCalendarSelection(int calendarId, [FromBody] bool selected)
         {
             // Update calendar's Selected property in DB
+            throw new NotImplementedException();
             return Ok();
         }
     
