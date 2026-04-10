@@ -1,9 +1,7 @@
-﻿using Azure.Core;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using VaclavikBC.Models;
-using VaclavikBC.Services;
 using VaclavikBC.Services.Interfaces;
 
 namespace VaclavikBC.Controllers
@@ -46,7 +44,7 @@ namespace VaclavikBC.Controllers
             string pageToken = null;
 
 
-            for (int i = 0; i < calendars.Count; i++)// var calendar in calendars)
+            for (int i = 0; i < calendars.Count; i++)
             {
                 var calendar = calendars[i];
                 string json = "";

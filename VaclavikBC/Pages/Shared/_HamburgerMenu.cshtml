@@ -218,11 +218,10 @@
 				background-color: #555;
 			}
 
-	/* Background content – optional overlay when menu is open */
 	.background-content {
 		transition: opacity 0.2s;
 	}
-	/* Optional: dim the background when menu is open */
+
 	body.menu-open .background-content {
 		opacity: 0.5;
 	}
@@ -312,7 +311,20 @@
 
 </style>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <script>
+
+	//refresh zobrazení připojení 
+	const connection = new signalR.HubConnectionBuilder()
+		.withUrl("/calendarSyncHub")
+		.build();
+
+	connection.on("DataChanged", (message) => {
+		console.log("New connection created:", messsage);
+		fetchConnectionStatus();
+	});
+
+	connection.start().catch(err => console.error(err));
 
 	document.addEventListener('DOMContentLoaded', function () {
 		// const menuToggle = document.querySelector('.menu-toggle');
@@ -336,12 +348,7 @@
 			document.body.classList.add('menu-open');
 			menuToggle.style.display = "none";
 
-			const container = document.getElementById('connections-container');
-			if (container) {
-				container.innerHTML = '<div class="loading">Loading connections...</div>';
-			}
-
-			fetchConnectionStatus();
+			//fetchConnectionStatus(); //nepotřebujeme aktualizovat při každém otevření v případě že ano - odkomentovat
 		}
 
 		function closeMenuFunction() {
@@ -386,6 +393,13 @@
 	async function fetchConnectionStatus() {
 		try {
 			console.log("start fetch");
+
+			const container = document.getElementById('connections-container');
+			if (!container) return;
+			if (container) {
+				container.innerHTML = '<div class="loading">Loading connections...</div>';
+			}
+
 			const response = await fetch('/api/CalendarConnectionsAPI');
 			const connections = await response.json();
 			renderConnections(connections);
@@ -393,152 +407,6 @@
 			console.error('Failed to load connections', err);
 		}
 	}
-
-	// function renderConnections(connections) {
-	// 	const container = document.getElementById('connections-container');
-	// 	if (!container) return;
-
-	// 	// Group by Provider
-	// 	const grouped = {};
-	// 	connections.forEach(conn => {
-	// 		const provider = conn.provider; // 'Google', 'Microsoft', etc.
-	// 		if (!grouped[provider]) grouped[provider] = [];
-	// 		grouped[provider].push(conn);
-	// 	});
-
-	// 	let html = '<div class="connections-list">';
-	// 	for (const [provider, conns] of Object.entries(grouped)) {
-	// 		html += `<div class="provider-group">
-	// 					<h3 class="provider-name">${provider}</h3>`;
-	// 		conns.forEach(conn => {
-	// 			html += `<details class="connection-item">
-	// 						<summary>
-	// 							<strong>${conn.email || conn.provider} (ID: ${conn.id})</strong>
-	// 							<button class="refresh-connection" data-id="${conn.id}">Refresh</button>
-	// 							<button class="delete-connection" data-id="${conn.id}"> Delete</button>
-	// 						</summary>
-	// 						<div class="calendars-list">`;
-	// 			if (conn.calendars && conn.calendars.length) {
-	// 				conn.calendars.forEach(cal => {
-	// 					html += `<div class="calendar-item">
-	// 								<label>
-	// 									<input type="checkbox" class="calendar-checkbox" data-id="${cal.id}" ${cal.selected ? 'checked' : ''}>
-	// 									${cal.name}
-	// 								</label>
-	// 								<button class="refresh-calendar" data-id="${cal.id}">⟳</button>
-	// 							</div>`;
-	// 				});
-	// 			} else {
-	// 				html += `<em>No calendars found</em>`;
-	// 			}
-	// 			html += `</div></details>`;
-	// 		});
-	// 		html += `</div>`;
-	// 	}
-	// 	html += `</div>`;
-	// 	container.innerHTML = html;
-	// 	attachEventListeners();
-	// }
-
-	// function renderConnections(connections) {
-	// 	const container = document.getElementById('connections-container');
-	// 	if (!container) return;
-
-	// 	const grouped = {};
-	// 	connections.forEach(conn => {
-	// 		const provider = conn.provider;
-	// 		if (!grouped[provider]) grouped[provider] = [];
-	// 		grouped[provider].push(conn);
-	// 	});
-
-	// 	let html = '<div class="connections-list">';
-	// 	for (const [provider, conns] of Object.entries(grouped)) {
-	// 		html += `<div class="provider-group">
-	// 					<h3 class="provider-name">${provider}</h3>`;
-	// 		conns.forEach(conn => {
-	// 			html += `<div class="connection-item">
-	// 						<div class="connection-header">
-	// 							<strong>${conn.email || conn.provider} (ID: ${conn.id})</strong>
-	// 							<div class="connection-buttons">
-	// 								<button class="refresh-connection" data-id="${conn.id}">⟳ Refresh</button>
-	// 								<button class="delete-connection" data-id="${conn.id}">🗑 Delete</button>
-	// 							</div>
-	// 						</div>
-	// 						<div class="calendars-list">`;
-	// 			if (conn.calendars && conn.calendars.length) {
-	// 				conn.calendars.forEach(cal => {
-	// 					html += `<div class="calendar-item">
-	// 								<label>
-	// 									<input type="checkbox" class="calendar-checkbox" data-id="${cal.id}" ${cal.selected ? 'checked' : ''}>
-	// 									${cal.name}
-	// 								</label>
-	// 								<button class="refresh-calendar" data-id="${cal.id}">⟳</button>
-	// 							</div>`;
-	// 				});
-	// 			} else {
-	// 				html += `<em>No calendars found</em>`;
-	// 			}
-	// 			html += `</div></div>`;
-	// 		});
-	// 		html += `</div>`;
-	// 	}
-	// 	html += `</div>`;
-	// 	container.innerHTML = html;
-
-	// 	// Attach event listeners (same as before)
-	// 	attachEventListeners();
-	// }
-
-	// function attachEventListeners(){
-
-	// 	document.querySelectorAll('.connection-header').forEach(header => {
-	// 		header.addEventListener('click', (e) => {
-	// 			// Don't toggle if the click was on a button
-	// 			if (e.target.tagName === 'BUTTON') return;
-	// 			const calendarsList = header.nextElementSibling;
-	// 			if (calendarsList) {
-	// 				calendarsList.style.display = calendarsList.style.display === 'none' ? 'block' : 'none';
-	// 			}
-	// 		});
-	// 	});
-
-	// 	document.querySelectorAll('.refresh-connection').forEach(btn => {
-	// 		btn.addEventListener('click', async (e) => {
-	// 			e.stopPropagation();
-	// 			const id = btn.dataset.id;
-	// 			await fetch(`/api/CalendarConnectionsAPI/${id}/refresh`, { method: 'POST' });
-	// 			fetchConnectionStatus(); // refresh list after sync
-	// 		});
-	// 	});
-	// 	document.querySelectorAll('.delete-connection').forEach(btn => {
-	// 		btn.addEventListener('click', async (e) => {
-	// 			e.stopPropagation();
-	// 			if (!confirm('Delete this connection and all its calendars?')) return;
-	// 			const id = btn.dataset.id;
-	// 			await fetch(`/api/CalendarConnectionsAPI/${id}/delete`, { method: 'POST' });
-	// 			fetchConnectionStatus();
-	// 		});
-	// 	});
-	// 	document.querySelectorAll('.refresh-calendar').forEach(btn => {
-	// 		btn.addEventListener('click', async (e) => {
-	// 			e.stopPropagation();
-	// 			const calendarId = btn.dataset.id;
-	// 			await fetch(`/api/CalendarConnectionsAPI/calendar/${calendarId}/refresh`, { method: 'POST' });
-	// 			// optionally refresh only that calendar's events, not full list
-	// 		});
-	// 	});
-	// 	document.querySelectorAll('.calendar-checkbox').forEach(chk => {
-	// 		chk.addEventListener('change', async (e) => {
-	// 			const calendarId = chk.dataset.id;
-	// 			const selected = chk.checked;
-	// 			await fetch(`/api/CalendarConnectionsAPI/calendar/${calendarId}/toggle`, {
-	// 				method: 'POST',
-	// 				headers: { 'Content-Type': 'application/json' },
-	// 				body: JSON.stringify(selected)
-	// 			});
-	// 		});
-	// 	});
-	// }
 
 		function renderConnections(connections) {
 		const container = document.getElementById('connections-container');
@@ -593,20 +461,18 @@
 		attachEventListeners();
 	}
 
-	// Helper function to attach all button listeners (called after render)
 	function attachEventListeners() {
 		document.querySelectorAll('.refresh-connection').forEach(btn => {
 			btn.addEventListener('click', async (e) => {
 				e.stopPropagation();
 				const id = btn.dataset.id;
-				// Show loading on the specific connection item
 				const item = btn.closest('.connection-item');
 				const originalText = btn.innerText;
 				btn.innerText = 'Refreshing...';
 				btn.disabled = true;
 				try {
 					await fetch(`/api/CalendarConnectionsAPI/${id}/refresh`, { method: 'POST', credentials: 'include' });
-					await fetchConnectionStatus(); // refresh the whole list
+					await fetchConnectionStatus();
 				} catch (err) {
 					console.error('Refresh failed', err);
 				} finally {
@@ -614,6 +480,12 @@
 					btn.disabled = false;
 				}
 			});
+		});
+
+		window.addEventListener('message', (event) => {
+			if (event.data === 'oauthComplete') {
+				fetchConnectionStatus();
+			}
 		});
 
 		document.querySelectorAll('.delete-connection').forEach(btn => {
@@ -644,7 +516,6 @@
 				btn.disabled = true;
 				try {
 					await fetch(`/api/CalendarConnectionsAPI/calendar/${calendarId}/refresh`, { method: 'POST', credentials: 'include' });
-					// Optionally refresh only that calendar's events without reloading all
 				} catch (err) {
 					console.error('Calendar refresh failed', err);
 				} finally {
@@ -667,7 +538,6 @@
 					});
 				} catch (err) {
 					console.error('Toggle failed', err);
-					// Revert checkbox state on error
 					chk.checked = !selected;
 				}
 			});

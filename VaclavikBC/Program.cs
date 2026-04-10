@@ -1,13 +1,10 @@
 ﻿using AspNet.Security.OAuth.Calendly;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Web;
 using System.Text.Json.Serialization;
 using VaclavikBC.Controllers;
 using VaclavikBC.Data;
+using VaclavikBC.Hubs;
 using VaclavikBC.Services;
 using VaclavikBC.Services.Interfaces;
 
@@ -24,12 +21,12 @@ builder.Services.AddScoped<GoogleController>();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddControllersWithViews();
+builder.Services.AddSignalR();
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = ReferenceHandler.IgnoreCycles;
-        // Optional: increase max depth if needed
         options.JsonSerializerOptions.MaxDepth = 64;
     });
 
@@ -75,12 +72,6 @@ CookieAuthenticationDefaults.AuthenticationScheme
     options.CallbackPath = "/signin-calendly";
 });
 
-//builder.Services.AddAuthentication()
-//    .AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"))
-//    .EnableTokenAcquisitionToCallDownstreamApi()
-//        .AddMicrosoftGraph(builder.Configuration.GetSection("MicrosoftGraph"))
-//        .AddInMemoryTokenCaches();
-
 
 var app = builder.Build();
 
@@ -106,5 +97,5 @@ app.MapControllerRoute(
     pattern: "{controller=Home}/{action=Index}/{id?}");
 
 app.MapRazorPages();
-
+app.MapHub<CalendarSyncHub>("/calendarSyncHub");
 app.Run();
