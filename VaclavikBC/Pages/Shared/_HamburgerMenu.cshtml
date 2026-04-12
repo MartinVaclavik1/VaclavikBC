@@ -238,6 +238,7 @@
 	.provider-name {
 		font-size: 1.2em;
 		margin: 10px 0 5px;
+		text-align: center;
 		border-bottom: 1px solid #555;
 	}
 
@@ -328,7 +329,7 @@
 
 	connection.start().catch(err => console.error(err));
 
-	document.addEventListener('DOMContentLoaded', function () {
+	document.addEventListener('DOMContentLoaded', async function () {
 		// const menuToggle = document.querySelector('.menu-toggle');
 		// const menu = document.querySelector('.menu');
 
@@ -339,18 +340,16 @@
 		// 	});
 		// }
 
-		fetchConnectionStatus();
-
 		const menuToggle = document.querySelector('.menu-toggle');
 		const closeMenu = document.querySelector('.close-menu');
 		const menu = document.querySelector('.menu');
 
-		function openMenu() {
+		async function openMenu() {
 			menu.classList.add('open');
 			document.body.classList.add('menu-open');
 			menuToggle.style.display = "none";
 
-			//fetchConnectionStatus(); //nepotřebujeme aktualizovat při každém otevření v případě že ano - odkomentovat
+			//await fetchConnectionStatus(); //nepotřebujeme aktualizovat při každém otevření v případě že ano - odkomentovat
 		}
 
 		function closeMenuFunction() {
@@ -365,6 +364,8 @@
 		if (closeMenu) {
 			closeMenu.addEventListener('click', closeMenuFunction);
 		}
+		
+		await fetchConnectionStatus();
 	});
 
 	function oauthPopup(provider) {
