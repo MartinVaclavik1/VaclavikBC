@@ -35,21 +35,38 @@ namespace VaclavikBC.Services
                     .FirstOrDefaultAsync(c => c.Email == incomingConnection.Email &&
                                               c.Provider == incomingConnection.Provider);
 
-                if (existingConnection == null)
+                //nepotřebujeme dlouhý kód - pro aktuální kalendáře je potřeba smazat ukožené kalendáře/eventy
+                //=> pokaždé smazat connection a nahrát ho => databáze sama načte odkazované objekty
+                if (existingConnection != null)
                 {
-                    incomingConnection.Id = 0;
-                    foreach (var cal in incomingConnection.Calendars)
-                    {
-                        cal.Id = 0;
-                        foreach (var ev in cal.Events) ev.Id = 0;
-                    }
-                    dbContext.CalendarConnection.Add(incomingConnection);
+                    dbContext.CalendarConnection.Remove(existingConnection);
+                    //existingConnection = null;
                 }
-                else
+
+                incomingConnection.Id = 0;
+                foreach (var cal in incomingConnection.Calendars)
                 {
-                    dbContext.Entry(existingConnection).CurrentValues.SetValues(incomingConnection);
-                    UpdateCalendarCollection(existingConnection.Calendars, incomingConnection.Calendars, dbContext);
+                    cal.Id = 0;
+                    foreach (var ev in cal.Events) ev.Id = 0;
                 }
+                dbContext.CalendarConnection.Add(incomingConnection);
+
+                //if (existingConnection == null)
+                //{
+                //    incomingConnection.Id = 0;
+                //    foreach (var cal in incomingConnection.Calendars)
+                //    {
+                //        cal.Id = 0;
+                //        foreach (var ev in cal.Events) ev.Id = 0;
+                //    }
+                //    dbContext.CalendarConnection.Add(incomingConnection);
+                //}
+                //else
+                //{
+                //    incomingConnection.Id = existingConnection.Id;
+                //    dbContext.Entry(existingConnection).CurrentValues.SetValues(incomingConnection);
+                //    UpdateCalendarCollection(existingConnection.Calendars, incomingConnection.Calendars, dbContext, existingConnection.Id);
+                //}
 
                 await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
@@ -60,7 +77,8 @@ namespace VaclavikBC.Services
 
         private void UpdateCalendarCollection(ICollection<Calendar> existingCalendars,
                                       ICollection<Calendar> incomingCalendars,
-                                      VaclavikBCContext dbContext)
+                                      VaclavikBCContext dbContext,
+                                      int connectionId)
         {
             foreach (var incomingCal in incomingCalendars)
             {
@@ -68,30 +86,38 @@ namespace VaclavikBC.Services
                 if (existingCal == null)
                 {
                     incomingCal.Id = 0;
+                    incomingCal.CalendarConnectionId = connectionId;
                     foreach (var ev in incomingCal.Events) ev.Id = 0;
                     existingCalendars.Add(incomingCal);
                 }
                 else
                 {
+                    incomingCal.Id = existingCal.Id;
+                    incomingCal.CalendarConnectionId = existingCal.CalendarConnectionId;
                     dbContext.Entry(existingCal).CurrentValues.SetValues(incomingCal);
-                    UpdateEventCollection(existingCal.Events, incomingCal.Events, dbContext);
+                    UpdateEventCollection(existingCal.Events, incomingCal.Events, dbContext, existingCal.Id);
                 }
             }
         }
 
         private void UpdateEventCollection(ICollection<CalendarEvent> existingEvents,
                                       ICollection<CalendarEvent> incomingEvents,
-                                      VaclavikBCContext dbContext)
+                                      VaclavikBCContext dbContext,
+                                      int calendarId)
         {
             foreach (var incomingEv in incomingEvents)
             {
                 var existingEv = existingEvents.FirstOrDefault(c => c.ProviderId == incomingEv.ProviderId);
                 if (existingEv == null)
                 {
+                    incomingEv.Id = 0;
+                    incomingEv.CalendarId = calendarId;
                     existingEvents.Add(incomingEv);
                 }
                 else
                 {
+                    incomingEv.Id = existingEv.Id;
+                    incomingEv.CalendarId = existingEv.CalendarId;
                     dbContext.Entry(existingEv).CurrentValues.SetValues(incomingEv);
                 }
             }

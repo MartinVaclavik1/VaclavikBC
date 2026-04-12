@@ -13,10 +13,13 @@
     {
         // provider = Google, Facebook, GitHub, Microsoft
         private readonly GoogleController _googleController;
+        private readonly MicrosoftController _microsoftController;
 
-        public AccountController(GoogleController googleController)
+
+        public AccountController(GoogleController googleController, MicrosoftController microsoftController)
         {
             _googleController = googleController;
+            _microsoftController = microsoftController;
         }
 
         public IActionResult OAuthLogin(string provider)
@@ -66,7 +69,7 @@
             }
             else if (provider == Providers.Microsoft.ToString())
             {
-                throw new NotImplementedException();
+                //_microsoftController.ZiskejData(calendarConnection);
             }
             else if (provider == Providers.Calendly.ToString())
             {

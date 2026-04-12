@@ -17,6 +17,7 @@ builder.Services.AddDbContext<VaclavikBCContext>(options =>
 
 builder.Services.AddScoped<ISyncService, SyncService>();
 builder.Services.AddScoped<GoogleController>();
+builder.Services.AddScoped<MicrosoftController>();
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
@@ -61,9 +62,9 @@ CookieAuthenticationDefaults.AuthenticationScheme
 .AddMicrosoftAccount("Microsoft", options => {
     options.ClientId = builder.Configuration["AzureAd:ClientId"];
     options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
-    options.SaveTokens = true;
-    options.CallbackPath = "/signin-microsoft";
- })
+    //options.SaveTokens = true;
+    //options.CallbackPath = "/signin-microsoft";
+})
 .AddCalendly("Calendly", options =>
 {
     options.ClientId = builder.Configuration["Calendly:ClientId"];
@@ -71,7 +72,6 @@ CookieAuthenticationDefaults.AuthenticationScheme
     options.SaveTokens = true;
     options.CallbackPath = "/signin-calendly";
 });
-
 
 var app = builder.Build();
 

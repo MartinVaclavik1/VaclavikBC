@@ -108,7 +108,7 @@ namespace VaclavikBC.Models
         public string ProviderId { get; set; }
 
         [JsonProperty("summary")]
-        public string Title { get; set; }
+        public string Title { get; set; } = "(Title not set)";
 
         [JsonProperty("start")]
         public EventDateTime StartInfo { get; set; }

@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Diagnostics;
 using System.Security.Claims;
 using VaclavikBC.Data;
 using VaclavikBC.Hubs;
@@ -67,9 +68,14 @@ namespace VaclavikBC.Controllers
         [HttpPost("calendar/{calendarId}/toggle")]
         public async Task<IActionResult> ToggleCalendarSelection(int calendarId, [FromBody] bool selected)
         {
-            // Update calendar's Selected property in DB
-            throw new NotImplementedException();
-            return Ok();
+            var calendar = await _context.Calendar.FindAsync(calendarId);
+            if (calendar == null)
+                return NotFound($"Calendar with ID {calendarId} not found.");
+
+            calendar.Selected = selected;
+            await _context.SaveChangesAsync();
+            await _hubContext.Clients.All.SendAsync("CalendarStateChanged", "Calendar data updated");
+            return Ok(new { calendarId, selected });
         }
     
     }
