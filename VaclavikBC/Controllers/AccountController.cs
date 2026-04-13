@@ -41,7 +41,7 @@
 
             var accessToken = await HttpContext.GetTokenAsync("access_token");
             var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
-            var idToken = await HttpContext.GetTokenAsync("id_token");
+            //var idToken = await HttpContext.GetTokenAsync("id_token");    //nepotřebujeme
             var expiresAt = await HttpContext.GetTokenAsync("expires_at");
 
             var claims = result.Principal.Identities.FirstOrDefault()?.Claims;
@@ -69,7 +69,7 @@
             }
             else if (provider == Providers.Microsoft.ToString())
             {
-                //_microsoftController.ZiskejData(calendarConnection);
+                await _microsoftController.ZiskejData(calendarConnection);
             }
             else if (provider == Providers.Calendly.ToString())
             {
