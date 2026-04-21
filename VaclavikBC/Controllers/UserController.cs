@@ -24,7 +24,10 @@ namespace VaclavikBC.Controllers
             var result = await _userManager.CreateAsync(user, password);
 
             if (result.Succeeded)
-                return Ok("User created");
+            {
+                await Login(username, password);
+                return Ok();
+            }
 
             return BadRequest(result.Errors);
         }
@@ -36,7 +39,7 @@ namespace VaclavikBC.Controllers
                 username, password, false, false);
 
             if (result.Succeeded)
-                return Ok("Logged in");
+                return Ok();
 
             return Unauthorized();
         }
