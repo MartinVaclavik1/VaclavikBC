@@ -45,7 +45,7 @@ namespace VaclavikBC.Controllers
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return Ok("Signed out");
+            return Ok();
         }
     }
 }

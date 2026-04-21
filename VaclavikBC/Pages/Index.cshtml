@@ -99,12 +99,12 @@
 			}
 
 		.calendar-wrapper {
-					flex: 1;
-					overflow: auto;
-					background: white;
-					border-radius: 12px;
-					box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-					margin-top: 0.5rem;
+			flex: 1;
+			overflow: auto;
+			background: white;
+			border-radius: 12px;
+			box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+			margin-top: 0.5rem;
 		}
 
 		.loading-overlay {
@@ -329,6 +329,7 @@
 
 	<div class="top-bar">
 		<div></div>
+		<button onclick="logout()">Logout</button>
 		<div class="week-controls">
 			<div class="nav-group"><button class="nav-btn" id="prevWeekBtn">Prev week</button></div>
 			<div class="week-info" id="weekInfoTrigger"><span id="weekRangeText">—</span></div>
@@ -1068,7 +1069,7 @@
 			document.getElementById('prevWeekBtn')?.addEventListener('click', () => navigateWeek(-1));
 			document.getElementById('nextWeekBtn')?.addEventListener('click', () => navigateWeek(1));
 			document.getElementById('weekInfoTrigger')?.addEventListener('click', openWeekPicker);
-			
+
 			await renderCalendar();	//init render kalendare
 			await fetchEventsForWeek(currentWeekStart);
 		});
@@ -1092,6 +1093,14 @@
 		function hideLoading() {
 			const overlay = document.getElementById('loadingOverlay');
 			if (overlay) overlay.remove();
+		}
+
+		async function logout() {
+			await fetch('/User/Logout', {
+				method: 'POST'
+			});
+
+			location.reload();
 		}
 	</script>
 </body>
