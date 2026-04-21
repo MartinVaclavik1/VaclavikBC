@@ -326,7 +326,7 @@
 	</style>
 </head>
 <body>
-
+	<div class="authOverlay"><partial name="_Login" /></div>
 	<div class="top-bar">
 		<div></div>
 		<button onclick="logout()">Logout</button>
@@ -1071,23 +1071,31 @@
 			document.getElementById('weekInfoTrigger')?.addEventListener('click', openWeekPicker);
 
 			await renderCalendar();	//init render kalendare
-			await fetchEventsForWeek(currentWeekStart);
+
+			const isAuthenticated = @Html.Raw(User.Identity?.IsAuthenticated.ToString().ToLower());
+
+			if (isAuthenticated) {
+				await fetchEventsForWeek(currentWeekStart);
+			} else {
+				openAuth();
+			}
+
 		});
 
 		function showLoading() {
-			const wrapper = document.querySelector('.calendar-wrapper');
-			if (!wrapper) return;
-			hideLoading();
-			const overlay = document.createElement('div');
-			overlay.className = 'loading-overlay';
-			overlay.id = 'loadingOverlay';
-			overlay.innerHTML = `
-				<div class="loading-content">
-					<div class="spinner"></div>
-					<span>Loading events...</span>
-				</div>
-			`;
-			wrapper.appendChild(overlay);
+		const wrapper = document.querySelector('.calendar-wrapper');
+		if (!wrapper) return;
+		hideLoading();
+		const overlay = document.createElement('div');
+		overlay.className = 'loading-overlay';
+		overlay.id = 'loadingOverlay';
+		overlay.innerHTML = `
+		<div class="loading-content">
+			<div class="spinner"></div>
+			<span>Loading events...</span>
+		</div>
+		`;
+		wrapper.appendChild(overlay);
 		}
 
 		function hideLoading() {
@@ -1102,7 +1110,16 @@
 
 			location.reload();
 		}
+
+		function openAuth() {
+			document.getElementById("authOverlay").style.display = "flex";
+		}
+
+		function closeAuth() {
+			document.getElementById("authOverlay").style.display = "none";
+		}
 	</script>
+
 </body>
 </html>
 
