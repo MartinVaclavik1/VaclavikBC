@@ -14,12 +14,15 @@
         // provider = Google, Facebook, GitHub, Microsoft
         private readonly GoogleController _googleController;
         private readonly MicrosoftController _microsoftController;
+        private readonly CalendlyController _calendlyController;
 
 
-        public AccountController(GoogleController googleController, MicrosoftController microsoftController)
+        public AccountController(GoogleController googleController, MicrosoftController microsoftController, 
+            CalendlyController calendlyController)
         {
             _googleController = googleController;
             _microsoftController = microsoftController;
+            _calendlyController = calendlyController;
         }
 
         public IActionResult OAuthLogin(string provider)
@@ -73,7 +76,7 @@
             }
             else if (provider == Providers.Calendly.ToString())
             {
-                throw new NotImplementedException();
+                _calendlyController.ZiskejData(calendarConnection);
             }
             else
             {

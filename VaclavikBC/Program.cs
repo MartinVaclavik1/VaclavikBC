@@ -1,7 +1,9 @@
 ﻿using AspNet.Security.OAuth.Calendly;
+using Google;
 using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Graph;
 using Microsoft.Identity.Web;
@@ -23,7 +25,12 @@ builder.Services.AddDbContext<VaclavikBCContext>(options =>
 builder.Services.AddScoped<ISyncService, SyncService>();
 builder.Services.AddScoped<GoogleController>();
 builder.Services.AddScoped<MicrosoftController>();
+builder.Services.AddScoped<CalendlyController>();
 
+
+builder.Services.AddIdentity<IdentityUser, IdentityRole>()
+    .AddEntityFrameworkStores<VaclavikBCContext>()
+    .AddDefaultTokenProviders();
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddControllersWithViews();

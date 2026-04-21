@@ -2,12 +2,13 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using VaclavikBC.Models;
 
 namespace VaclavikBC.Data
 {
-    public class VaclavikBCContext : DbContext
+    public class VaclavikBCContext : IdentityDbContext
     {
         public VaclavikBCContext (DbContextOptions<VaclavikBCContext> options)
             : base(options)
