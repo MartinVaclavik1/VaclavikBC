@@ -1,13 +1,7 @@
 ﻿using AspNet.Security.OAuth.Calendly;
-using Google;
-using Google.Apis.Auth.OAuth2;
 using Microsoft.AspNetCore.Authentication.Cookies;
-using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Graph;
-using Microsoft.Identity.Web;
-using NodaTime;
 using System.Text.Json.Serialization;
 using VaclavikBC.Controllers;
 using VaclavikBC.Data;
@@ -15,7 +9,7 @@ using VaclavikBC.Hubs;
 using VaclavikBC.Services;
 using VaclavikBC.Services.Interfaces;
 
-var builder = Microsoft.AspNetCore.Builder.WebApplication.CreateBuilder(args);
+var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
@@ -31,7 +25,6 @@ builder.Services.AddScoped<CalendlyController>();
 builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<VaclavikBCContext>()
     .AddDefaultTokenProviders();
-builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddControllersWithViews();
 builder.Services.AddSignalR();
@@ -44,12 +37,14 @@ builder.Services.AddControllers()
     });
 
 builder.Services.AddAuthentication(
-//    options =>
-//{
-//    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-//    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-//}
-CookieAuthenticationDefaults.AuthenticationScheme
+    options =>
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    //options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
+}
+
+//CookieAuthenticationDefaults.AuthenticationScheme
 )
     .AddCookie(options =>
 {
@@ -72,7 +67,6 @@ CookieAuthenticationDefaults.AuthenticationScheme
             return Task.CompletedTask;
         };
     })
-    //TODO zprovoznit microsoft a calendly
 //.AddMicrosoftAccount("Microsoft", options => {    //staré
 //    options.ClientId = builder.Configuration["AzureAd:ClientId"];
 //    options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
@@ -115,7 +109,6 @@ CookieAuthenticationDefaults.AuthenticationScheme
 //    .AddInMemoryTokenCaches();
 .AddOpenIdConnect("Microsoft", options =>
 {
-    options.SignInScheme = CookieAuthenticationDefaults.AuthenticationScheme;
     options.Authority = "https://login.microsoftonline.com/common/v2.0";
     options.ClientId = builder.Configuration["AzureAd:ClientId"];
     options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
@@ -128,19 +121,6 @@ CookieAuthenticationDefaults.AuthenticationScheme
     options.Scope.Add("Calendars.Read");
     options.CallbackPath = "/signin-microsoft";
     options.TokenValidationParameters.ValidateIssuer = false;
-});
-
-builder.Services.AddScoped<GraphServiceClient>(sp =>
-{
-    var tokenAcquisition = sp.GetRequiredService<ITokenAcquisition>();
-    var scopes = new[] { "https://graph.microsoft.com/Calendars.Read" };
-    return new GraphServiceClient(
-        new DelegateAuthenticationProvider(async (requestMessage) =>
-        {
-            var accessToken = await tokenAcquisition.GetAccessTokenForUserAsync(scopes);
-            requestMessage.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", accessToken);
-        })
-    );
 });
 
 var app = builder.Build();

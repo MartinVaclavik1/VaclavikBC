@@ -33,7 +33,8 @@ namespace VaclavikBC.Services
                     .Include(c => c.Calendars)
                         .ThenInclude(cal => cal.Events)
                     .FirstOrDefaultAsync(c => c.Email == incomingConnection.Email &&
-                                              c.Provider == incomingConnection.Provider);
+                                              c.Provider == incomingConnection.Provider &&
+                                              c.UserId == incomingConnection.UserId);
 
                 //nepotřebujeme dlouhý kód - pro aktuální kalendáře je potřeba smazat ukožené kalendáře/eventy
                 //=> pokaždé smazat connection a nahrát ho => databáze sama načte odkazované objekty

@@ -1,6 +1,7 @@
 ﻿namespace VaclavikBC.Controllers
 {
     using Microsoft.AspNetCore.Authentication;
+    using Microsoft.AspNetCore.Identity;
     using Microsoft.AspNetCore.Mvc;
     using System.Security.Claims;
     using VaclavikBC.Enums;
@@ -34,16 +35,21 @@
 
         public async Task<IActionResult> OAuthResponse()
         {
-            var result = await HttpContext.AuthenticateAsync();
+            var result = await HttpContext.AuthenticateAsync(IdentityConstants.ExternalScheme);
 
             if (!result.Succeeded)
                 return Content("Přihlášení selhalo");
 
-            var accessToken = await HttpContext.GetTokenAsync("access_token");
-            var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
-            //var idToken = await HttpContext.GetTokenAsync("id_token");    //nepotřebujeme
-            var expiresAt = await HttpContext.GetTokenAsync("expires_at");
+            //TODO smazat po otestování
+            //var accessToken = await HttpContext.GetTokenAsync("access_token");
+            //var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
+            ////var idToken = await HttpContext.GetTokenAsync("id_token");    //nepotřebujeme
+            //var expiresAt = await HttpContext.GetTokenAsync("expires_at");
 
+
+            var accessToken = result.Properties?.GetTokenValue("access_token");
+            var refreshToken = result.Properties?.GetTokenValue("refresh_token");
+            var expiresAt = result.Properties?.GetTokenValue("expires_at");
             var claims = result.Principal.Identities.FirstOrDefault()?.Claims;
 
             var email = claims?.FirstOrDefault(c => c.Type.Contains("email"))?.Value;
