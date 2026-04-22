@@ -27,10 +27,13 @@ namespace VaclavikBC.Controllers
         [HttpGet]
         public async Task<IActionResult> GetUserConnections()
         {
-            // Assuming you have a way to get current user ID (e.g., from HttpContext.User)
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized();
+
             var connections = await _context.CalendarConnection
                 .Include(c => c.Calendars)
+                .Where(c => c.UserId == userId)
                 .ToListAsync();
             return Ok(connections);
         }

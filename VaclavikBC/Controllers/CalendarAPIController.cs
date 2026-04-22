@@ -3,6 +3,7 @@ using Ical.Net.Evaluation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
+using System.Security.Claims;
 using VaclavikBC.Data;
 using VaclavikBC.Models;
 
@@ -25,10 +26,13 @@ namespace VaclavikBC.Controllers
        [FromQuery] DateTime start,   
        [FromQuery] DateTime end)
         {
-            // Query all selected calendars with their events
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized();
+
             var selectedCalendars = await _context.Calendar
                 .Include(c => c.Events)
-                .Where(c => c.Selected)
+                .Where(c => c.Selected && c.CalendarConnection.UserId == userId)
                 .ToListAsync();
 
             var result = new List<EventDto>();

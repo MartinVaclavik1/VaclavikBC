@@ -54,7 +54,7 @@ namespace VaclavikBC.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Email,Provider,AccessToken,RefreshToken,NextSyncToken,ExpirationTime")] CalendarConnection calendarConnection)
+        public async Task<IActionResult> Create([Bind("Id,UserId,Email,Provider,AccessToken,RefreshToken,NextSyncToken,ExpirationTime")] CalendarConnection calendarConnection)
         {
             if (ModelState.IsValid)
             {
@@ -86,7 +86,7 @@ namespace VaclavikBC.Controllers
         // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, [Bind("Id,Email,Provider,AccessToken,RefreshToken,NextSyncToken,ExpirationTime")] CalendarConnection calendarConnection)
+        public async Task<IActionResult> Edit(int id, [Bind("Id,UserId,Email,Provider,AccessToken,RefreshToken,NextSyncToken,ExpirationTime")] CalendarConnection calendarConnection)
         {
             if (id != calendarConnection.Id)
             {

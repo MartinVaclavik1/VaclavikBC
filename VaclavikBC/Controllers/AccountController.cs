@@ -1,11 +1,8 @@
 ﻿namespace VaclavikBC.Controllers
 {
-    using Google.Apis.Calendar.v3.Data;
     using Microsoft.AspNetCore.Authentication;
     using Microsoft.AspNetCore.Mvc;
-    using System.Net.Http.Headers;
-    using System.Text.Json;
-    using System.Text.Json.Serialization;
+    using System.Security.Claims;
     using VaclavikBC.Enums;
     using VaclavikBC.Models;
 
@@ -53,8 +50,14 @@
             var name = claims?.FirstOrDefault(c => c.Type.EndsWith("name"))?.Value; //ends with, protože je zde pole nameidentifier, které to triggerovalo
             var provider = result.Properties?.Items[".AuthScheme"];
            
+
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized("User isn't logged in");
+
             CalendarConnection calendarConnection = new CalendarConnection
             {
+                UserId = userId,
                 Email = email,
                 Provider = provider,
                 AccessToken = accessToken,
@@ -80,7 +83,7 @@
             }
             else
             {
-                return Content("Chyba při získávání kalendářových dat");
+                return Content("Error getting calendar data");
             }
 
 
@@ -104,7 +107,7 @@
                     </script>
                 </head>
                 <body>
-                Uspesne prihlaseni. Muzete zavrit toto okno.
+                    Login successful. You can close this window.
                 </body>
                 </html>
                 """, "text/html");

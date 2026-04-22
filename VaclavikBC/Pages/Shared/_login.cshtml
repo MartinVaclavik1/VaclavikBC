@@ -1,4 +1,5 @@
 ﻿<style>
+
 .auth-overlay {
 			position: fixed;
 			inset: 0;
@@ -47,12 +48,9 @@
 		<div id="loginBox">
 			<h2>Login</h2>
 
-			<form asp-controller="User" asp-action="Login" method="post">
-				@Html.AntiForgeryToken()
-
+			<form id="loginForm">
 				<input type="text" name="username" placeholder="Username" required />
 				<input type="password" name="password" placeholder="Password" required />
-
 				<button type="submit">Login</button>
 			</form>
 
@@ -62,13 +60,10 @@
 		<div id="registerBox" style="display:none;">
 			<h2>Register</h2>
 
-			<form asp-controller="User" asp-action="Register" method="post">
-				@Html.AntiForgeryToken()
-
+			<form id="registerForm">
 				<input type="text" name="username" placeholder="Username" required />
 				<input type="password" name="password" placeholder="Password" required />
 				<input type="password" name="confirmPassword" placeholder="Confirm Password" required />
-
 				<button type="submit">Register</button>
 			</form>
 
@@ -79,13 +74,58 @@
 </div>
 
 <script>
-	function showRegister() {
-			document.getElementById("loginBox").style.display = "none";
-			document.getElementById("registerBox").style.display = "block";
-		}
+		function showRegister() {
+		document.getElementById("loginBox").style.display = "none";
+		document.getElementById("registerBox").style.display = "block";
+	}
 
-		function showLogin() {
-			document.getElementById("registerBox").style.display = "none";
-			document.getElementById("loginBox").style.display = "block";
-		}
+	function showLogin() {
+		document.getElementById("registerBox").style.display = "none";
+		document.getElementById("loginBox").style.display = "block";
+	}
+
+	document.addEventListener("DOMContentLoaded", () => {
+
+		document.getElementById("loginForm").addEventListener("submit", async (e) => {
+			e.preventDefault();
+
+			const form = e.target;
+			const response = await fetch("/User/Login", {
+				method: "POST",
+				body: new FormData(form)
+			});
+
+			if (response.ok) {
+				closeAuth();
+				location.reload();
+			} else {
+				alert("Login failed");
+			}
+		});
+
+		document.getElementById("registerForm").addEventListener("submit", async (e) => {
+			e.preventDefault();
+
+			const form = e.target;
+
+			if (form.password.value !== form.confirmPassword.value) {
+				alert("Passwords do not match");
+				return;
+			}
+
+			const response = await fetch("/User/Register", {
+				method: "POST",
+				body: new FormData(form)
+			});
+
+			if (response.ok) {	//po registraci automaticky přihlásí
+				alert("Registration successfull");
+				closeAuth();
+				location.reload();
+			} else {
+				alert("Registration failed");
+			}
+		});
+
+	});
 </script>

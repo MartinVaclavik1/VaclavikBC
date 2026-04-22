@@ -1,7 +1,4 @@
-﻿using Google.Apis.Calendar.v3.Data;
-using System.Text.Json.Serialization;
-
-namespace VaclavikBC.Models
+﻿namespace VaclavikBC.Models
 {
     /// <summary>
     /// ukládá připojení a informace k danému kalednářovému účtu
@@ -14,6 +11,7 @@ namespace VaclavikBC.Models
             "nextSyncToken": "CK--tJ6TpZMDEhdiY3ByYWNlbWFydGluQGdtYWlsLmNvbQ==",
          */
         public int Id { get; set; }
+        public string UserId { get; set; }
         public string Email { get; set; }
         public string Provider { get; set; } //Google/Microsoft..
         public string AccessToken { get; set; }
