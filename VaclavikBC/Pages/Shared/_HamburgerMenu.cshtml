@@ -6,9 +6,9 @@
 		<button class="close-menu" aria-label="Close menu">✕</button>
 
 		<ul class="provider-buttons">
-			<li><button class="provider-btn google" onclick="oauthPopup('google')">Connect Google</button></li>
-			<li><button class="provider-btn microsoft" onclick="oauthPopup('microsoft')">Connect Microsoft</button></li>
-			<li><button class="provider-btn calendly" onclick="oauthPopup('calendly')">Connect Calendly</button></li>
+			<li><button class="provider-btn google" onclick="oauthPopup('Google')">Connect Google</button></li>
+			<li><button class="provider-btn microsoft" onclick="oauthPopup('Microsoft')">Connect Microsoft</button></li>
+			<li><button class="provider-btn calendly" onclick="oauthPopup('Calendly')">Connect Calendly</button></li>
 
 		</ul>
 		<br />
@@ -170,7 +170,7 @@
 
 	/* The actual navigation menu (off-screen by default) */
 	.menu {
-		display:flex;
+		display: flex;
 		flex-direction: column;
 		position: fixed;
 		top: 0;
@@ -181,7 +181,7 @@
 		color: white;
 		transition: left 0.3s ease;
 		z-index: 1000;
-		padding-top: 60px; 
+		padding-top: 60px;
 		box-shadow: 2px 0 5px rgba(0,0,0,0.3);
 	}
 
@@ -262,7 +262,7 @@
 		gap: 8px;
 	}
 
-	.refresh-connection, .delete-connection, .refresh-calendar, .delete-calendar {
+	.refresh-connection, .delete-connection {
 		background: #2c6e2c;
 		border: none;
 		color: white;
@@ -272,13 +272,10 @@
 		font-size: 0.8em;
 	}
 
-	.delete-connection, .delete-calendar {
+	.delete-connection {
 		background: #a00;
 	}
 
-	.refresh-calendar {
-		background: #007bff;
-	}
 
 	.calendars-list {
 		padding: 10px;
@@ -309,8 +306,8 @@
 
 	#connections-container {
 		flex: 1;
-		overflow-y: auto; 
-		min-height: 0; 
+		overflow-y: auto;
+		min-height: 0;
 	}
 
 </style>
@@ -318,13 +315,13 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
 <script>
 
-	//refresh zobrazení připojení 
+	//refresh zobrazení připojení
 	const connection = new signalR.HubConnectionBuilder()
 		.withUrl("/calendarSyncHub")
 		.build();
 
-	connection.on("DataChanged", async (message) => {
-		console.log("New connection created:", messsage);
+	connection.on("ConnectionChanged", async (message) => {
+		console.log("Connection changed:", messsage);
 		await fetchConnectionStatus();
 	});
 
@@ -365,18 +362,20 @@
 		if (closeMenu) {
 			closeMenu.addEventListener('click', closeMenuFunction);
 		}
-		
+
 		//await fetchConnectionStatus();
 	});
 
 	function oauthPopup(provider) {
 		let url;
-		if (provider === 'google') {
+		if (provider === 'Google') {
 			url = '/Account/OAuthLogin?provider=Google';
-		} else if (provider === 'microsoft') {
+		} else if (provider === 'Microsoft') {
 			url = '/Account/OAuthLogin?provider=Microsoft';
-		} else if (provider === 'calendly') {
+		} else if (provider === 'Calendly') {
 			url = '/Account/OAuthLogin?provider=Calendly';
+		}else{
+			return;
 		}
 
 		// Open popup window (width, height)
@@ -431,7 +430,7 @@
 		for (const [provider, conns] of Object.entries(grouped)) {
 			html += `<div class="provider-group">
 						<h3 class="provider-name">${provider}</h3>`;
-			 
+
 			//seřazení připojení dle emailu
 			conns.sort(function(a, b){
 				let x = a.email.toLowerCase();
@@ -446,7 +445,7 @@
 							<div class="connection-header">
 								<strong>${conn.email}</strong>
 								<div class="connection-buttons">
-									<button class="refresh-connection" data-id="${conn.id}">Refresh</button>
+									<button class="refresh-connection" data-id="${conn.id}" data-provider="${conn.provider}">Refresh</button>
 									<button class="delete-connection" data-id="${conn.id}">Delete</button>
 								</div>
 							</div>
@@ -460,8 +459,6 @@
 									</label>
 									<div class="calendar-actions">
 										<input type="color" class="calendar-color-picker" data-id="${cal.id}" value="${cal.backgroundColor}">
-										<button class="refresh-calendar" data-id="${cal.id}">Refresh</button>
-										<button class="delete-calendar" data-id="${cal.id}">Delete</button>
 									</div>
 								</div>`;
 					});
@@ -494,12 +491,20 @@
 			btn.addEventListener('click', async (e) => {
 				e.stopPropagation();
 				const id = btn.dataset.id;
+				const provider = btn.dataset.provider;
 				const item = btn.closest('.connection-item');
 				const originalText = btn.innerText;
 				btn.innerText = 'Refreshing...';
 				btn.disabled = true;
 				try {
-					await fetch(`/api/CalendarConnectionsAPI/${id}/refresh`, { method: 'POST', credentials: 'include' });
+					const response = await fetch(`/api/CalendarConnectionsAPI/${id}/refresh`, { method: 'POST', credentials: 'include' });
+					
+					if (!response.ok) {
+							console.warn(`OAuth required for ${provider}, opening popup`);
+							oauthPopup(provider);
+							return;
+					}
+
 					await fetchConnectionStatus();
 				} catch (err) {
 					console.error('Refresh failed', err);
@@ -530,24 +535,6 @@
 					console.error('Delete failed', err);
 				} finally {
 					btn.innerText = 'Delete';
-					btn.disabled = false;
-				}
-			});
-		});
-
-		document.querySelectorAll('.refresh-calendar').forEach(btn => {
-			btn.addEventListener('click', async (e) => {
-				e.stopPropagation();
-				const calendarId = btn.dataset.id;
-				const originalText = btn.innerText;
-				btn.innerText = 'Refreshing...';
-				btn.disabled = true;
-				try {
-					await fetch(`/api/CalendarConnectionsAPI/calendar/${calendarId}/refresh`, { method: 'POST', credentials: 'include' });
-				} catch (err) {
-					console.error('Calendar refresh failed', err);
-				} finally {
-					btn.innerText = originalText;
 					btn.disabled = false;
 				}
 			});

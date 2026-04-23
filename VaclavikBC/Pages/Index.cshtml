@@ -706,7 +706,7 @@
 			.withUrl("/calendarSyncHub")
 			.build();
 
-		connection_index.on("CalendarStateChanged", async (message) => {
+		connection_index.on("EventsChanged", async (message) => {
 			console.log("New connection created:", message);
 			await fetchEventsForWeek(currentWeekStart);
 		});

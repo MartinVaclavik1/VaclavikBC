@@ -71,7 +71,7 @@ namespace VaclavikBC.Services
 
                 await dbContext.SaveChangesAsync();
                 await transaction.CommitAsync();
-                await _hubContext.Clients.All.SendAsync("ConnectionCreated", "Calendar data updated");
+                await _hubContext.Clients.All.SendAsync("ConnectionChanged", "Calendar data updated");
             }
             catch { await transaction.RollbackAsync(); throw; }
         }

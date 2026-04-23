@@ -38,6 +38,11 @@
 			cursor: pointer;
 		}
 
+		.switch.disabled {
+			pointer-events: none;
+			opacity: 0.6;
+			cursor: default;
+		}
 
 </style>
 
@@ -86,44 +91,111 @@
 
 	document.addEventListener("DOMContentLoaded", () => {
 
+		// document.getElementById("loginForm").addEventListener("submit", async (e) => {
+		// 	e.preventDefault();
+
+		// 	const form = e.target;
+		// 	const response = await fetch("/User/Login", {
+		// 		method: "POST",
+		// 		body: new FormData(form)
+		// 	});
+
+		// 	if (response.ok) {
+		// 		closeAuth();
+		// 		location.reload();
+		// 	} else {
+		// 		alert("Login failed");
+		// 	}
+		// });
+
+		// document.getElementById("registerForm").addEventListener("submit", async (e) => {
+		// 	e.preventDefault();
+
+		// 	const form = e.target;
+
+		// 	if (form.password.value !== form.confirmPassword.value) {
+		// 		alert("Passwords do not match");
+		// 		return;
+		// 	}
+
+		// 	const response = await fetch("/User/Register", {
+		// 		method: "POST",
+		// 		body: new FormData(form)
+		// 	});
+
+		// 	if (response.ok) {	//po registraci automaticky přihlásí
+		// 		alert("Registration successfull");
+		// 		closeAuth();
+		// 		location.reload();
+		// 	} else {
+		// 		alert("Registration failed");
+		// 	}
+		// });
+
 		document.getElementById("loginForm").addEventListener("submit", async (e) => {
 			e.preventDefault();
-
 			const form = e.target;
-			const response = await fetch("/User/Login", {
-				method: "POST",
-				body: new FormData(form)
-			});
+			const submitBtn = form.querySelector('button');
+			const originalText = submitBtn.textContent;
+			submitBtn.disabled = true;
+			submitBtn.textContent = "Logging in...";
+			document.querySelectorAll('.switch').forEach(el => el.classList.add('disabled'));
 
-			if (response.ok) {
-				closeAuth();
-				location.reload();
-			} else {
-				alert("Login failed");
+			try {
+				const response = await fetch("/User/Login", {
+					method: "POST",
+					body: new FormData(form)
+				});
+				if (response.ok) {
+					closeAuth();
+					location.reload();
+				} else {
+					alert("Login failed");
+					submitBtn.disabled = false;
+					submitBtn.textContent = originalText;
+					document.querySelectorAll('.switch').forEach(el => el.classList.remove('disabled'));
+				}
+			} catch (error) {
+				alert("Network error, please try again");
+				submitBtn.disabled = false;
+				submitBtn.textContent = originalText;
+				document.querySelectorAll('.switch').forEach(el => el.classList.remove('disabled'));
 			}
 		});
 
 		document.getElementById("registerForm").addEventListener("submit", async (e) => {
 			e.preventDefault();
-
 			const form = e.target;
-
 			if (form.password.value !== form.confirmPassword.value) {
 				alert("Passwords do not match");
 				return;
 			}
+			const submitBtn = form.querySelector('button');
+			const originalText = submitBtn.textContent;
+			submitBtn.disabled = true;
+			submitBtn.textContent = "Registering...";
+			document.querySelectorAll('.switch').forEach(el => el.classList.add('disabled'));
 
-			const response = await fetch("/User/Register", {
-				method: "POST",
-				body: new FormData(form)
-			});
-
-			if (response.ok) {	//po registraci automaticky přihlásí
-				alert("Registration successfull");
-				closeAuth();
-				location.reload();
-			} else {
-				alert("Registration failed");
+			try {
+				const response = await fetch("/User/Register", {
+					method: "POST",
+					body: new FormData(form)
+				});
+				if (response.ok) {
+					alert("Registration successful");
+					closeAuth();
+					location.reload();
+				} else {
+					alert("Registration failed");
+					submitBtn.disabled = false;
+					submitBtn.textContent = originalText;
+					document.querySelectorAll('.switch').forEach(el => el.classList.remove('disabled'));
+				}
+			} catch (error) {
+				alert("Network error, please try again");
+				submitBtn.disabled = false;
+				submitBtn.textContent = originalText;
+				document.querySelectorAll('.switch').forEach(el => el.classList.remove('disabled'));
 			}
 		});
 

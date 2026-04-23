@@ -40,13 +40,6 @@
             if (!result.Succeeded)
                 return Content("Přihlášení selhalo");
 
-            //TODO smazat po otestování
-            //var accessToken = await HttpContext.GetTokenAsync("access_token");
-            //var refreshToken = await HttpContext.GetTokenAsync("refresh_token");
-            ////var idToken = await HttpContext.GetTokenAsync("id_token");    //nepotřebujeme
-            //var expiresAt = await HttpContext.GetTokenAsync("expires_at");
-
-
             var accessToken = result.Properties?.GetTokenValue("access_token");
             var refreshToken = result.Properties?.GetTokenValue("refresh_token");
             var expiresAt = result.Properties?.GetTokenValue("expires_at");
@@ -61,6 +54,11 @@
             if (userId == null)
                 return Unauthorized("User isn't logged in");
 
+            if (provider == null)
+            {
+                return Content("Error getting calendar data");
+            }
+
             CalendarConnection calendarConnection = new CalendarConnection
             {
                 UserId = userId,
@@ -71,25 +69,19 @@
                 ExpirationTime = DateTime.Parse(expiresAt)
             };
 
-            if (provider == null)
+            switch (provider)
             {
-
-            }
-            else if (provider == Providers.Google.ToString())
-            {
-                _googleController.ZiskejData(calendarConnection);
-            }
-            else if (provider == Providers.Microsoft.ToString())
-            {
-                await _microsoftController.ZiskejData(calendarConnection);
-            }
-            else if (provider == Providers.Calendly.ToString())
-            {
-                _calendlyController.ZiskejData(calendarConnection);
-            }
-            else
-            {
-                return Content("Error getting calendar data");
+                case nameof(Providers.Google):
+                    await _googleController.ZiskejData(calendarConnection);
+                    break;
+                case nameof(Providers.Microsoft):
+                    await _microsoftController.ZiskejData(calendarConnection);
+                    break;
+                case nameof(Providers.Calendly):
+                    _calendlyController.ZiskejData(calendarConnection);
+                    break;
+                default:
+                    return Content("Error getting calendar data");
             }
 
 

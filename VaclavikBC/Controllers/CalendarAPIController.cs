@@ -41,18 +41,15 @@ namespace VaclavikBC.Controllers
             {
                 foreach (var ev in calendar.Events)
                 {
-                    // Handle all-day events
                     bool isAllDay = ev.StartInfo.Date.HasValue;
                     DateTime eventStart = ev.Start;
                     DateTime eventEnd = ev.End;
 
-                    // If the event has recurrence rules, expand them
                     if (ev.RecurrenceRules != null && ev.RecurrenceRules.Any())
                     {
                         var occurrences = ExpandRecurrence(ev, start, end);
                         foreach (var occ in occurrences)
                         {
-                            // Only add if occurrence overlaps the requested week
                             if (occ.Start < end && occ.End > start)
                             {
                                 result.Add(new EventDto
@@ -103,7 +100,6 @@ namespace VaclavikBC.Controllers
             Debug.WriteLine($"Expanding recurrence for '{ev.Title}' between {rangeStart} and {rangeEnd}");
             Debug.WriteLine($"Base event Start: {ev.Start}, End: {ev.End}");
 
-            // Build the iCal event
             var calendar = new Ical.Net.Calendar();
             var icalEvent = new Ical.Net.CalendarComponents.CalendarEvent
             {
@@ -130,7 +126,6 @@ namespace VaclavikBC.Controllers
                 catch (Exception ex)
                 {
                     Debug.WriteLine($"Failed to parse RRULE '{rruleString}': {ex.Message}");
-                    // Skip invalid rules
                 }
             }
 
@@ -142,13 +137,12 @@ namespace VaclavikBC.Controllers
 
             calendar.Events.Add(icalEvent);
 
-            // Convert range to CalDateTime with the same time zone as the event
             var calStart = new CalDateTime(rangeStart.ToUniversalTime());
             var calEnd = new CalDateTime(rangeEnd.ToUniversalTime());
 
             var options = new EvaluationOptions
             {
-                MaxUnmatchedIncrementsLimit = 5000 // generous limit for weekly rules
+                MaxUnmatchedIncrementsLimit = 5000
             };
 
             try
@@ -163,7 +157,6 @@ namespace VaclavikBC.Controllers
                     DateTime start = period.StartTime.Value;
                     DateTime end = period.EndTime?.Value ?? period.EffectiveEndTime.Value;
 
-                    // Only include if overlaps with the requested range
                     if (start < rangeEnd && end > rangeStart)
                     {
                         occurrences.Add((start, end));
