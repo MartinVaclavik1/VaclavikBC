@@ -26,5 +26,31 @@
                 kalendarEvent.CalendarConnection = this;
             }
         }
+
+        //pomocná funkce, aby se v každém controlleru nemusel psát tento kód
+        public async Task<bool> GetValidAccessTokenAsync(
+            Func<string, Task<(string? AccessToken, int ExpiresIn, string? RefreshToken)>> RefreshTokenFunc)
+        {
+            if (!string.IsNullOrEmpty(AccessToken) &&
+                ExpirationTime > DateTime.UtcNow)
+            {
+                return true;
+            }
+
+            if (!string.IsNullOrEmpty(RefreshToken))
+            {
+                var result = await RefreshTokenFunc(RefreshToken);
+                if (result.AccessToken != null)
+                {
+                    AccessToken = result.AccessToken;
+                    ExpirationTime = DateTime.UtcNow.AddSeconds(result.ExpiresIn);
+                    if (result.RefreshToken != null)
+                        RefreshToken = result.RefreshToken;
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

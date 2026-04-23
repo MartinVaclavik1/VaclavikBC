@@ -382,15 +382,8 @@
 		const width = 600, height = 700;
 		const left = (screen.width - width) / 2;
 		const top = (screen.height - height) / 2;
-		const popup = window.open(url, "oauthPopup",
+		window.open(url, "oauthPopup",
 			`width=${width},height=${height},left=${left},top=${top},resizable=yes,scrollbars=yes`);
-
-		const timer = setInterval(() => {
-			if (popup.closed) {
-				clearInterval(timer);
-				fetchConnectionStatus();
-			}
-		}, 500);
 	}
 
 	async function fetchConnectionStatus() {

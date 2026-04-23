@@ -121,6 +121,7 @@ builder.Services.AddAuthentication(
     options.Scope.Add("Calendars.Read");
     options.CallbackPath = "/signin-microsoft";
     options.TokenValidationParameters.ValidateIssuer = false;
+    options.Prompt = "consent";
 });
 
 var app = builder.Build();

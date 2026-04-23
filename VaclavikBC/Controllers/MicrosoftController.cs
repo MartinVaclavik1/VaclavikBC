@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authentication;
+﻿using Azure;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
@@ -15,13 +16,14 @@ namespace VaclavikBC.Controllers;
 public class MicrosoftController : Controller
 {
     private readonly ISyncService _syncService;
-
-    public MicrosoftController(ISyncService syncService)
+    private readonly IConfiguration _config;
+    public MicrosoftController(ISyncService syncService, IConfiguration config)
     {
         _syncService = syncService;
+        _config = config;
     }
 
-    public async Task<IActionResult> ZiskejData(CalendarConnection calendarConnection)
+    public async Task<bool> ZiskejData(CalendarConnection calendarConnection)
     {
         using var client = new HttpClient();
 
@@ -29,7 +31,8 @@ public class MicrosoftController : Controller
             new AuthenticationHeaderValue("Bearer", calendarConnection.AccessToken);
 
         var calendarsResponse = await client.GetAsync("https://graph.microsoft.com/v1.0/me/calendars");
-        calendarsResponse.EnsureSuccessStatusCode();
+        if (!calendarsResponse.IsSuccessStatusCode)
+            return false;
         var calendarsContent = await calendarsResponse.Content.ReadAsStringAsync();
 
         using var calendarsDoc = JsonDocument.Parse(calendarsContent);
@@ -98,7 +101,7 @@ public class MicrosoftController : Controller
         calendarConnection.Calendars = calendarModels;
         calendarConnection.SetCalendarsReference();
         await _syncService.SyncCalendarConnectionAsync(calendarConnection);
-        return Ok();
+        return true;
     }
     private CalendarEvent MapEventFromGraph(JsonElement ev)
     {
@@ -247,5 +250,65 @@ public class MicrosoftController : Controller
             parts.Add($"COUNT={count.GetInt32()}");
         }
         return string.Join(";", parts);
+    }
+
+    public async Task<bool> RefreshConnectionAsync(CalendarConnection connection)
+    {
+
+        bool tokenValid = await connection.GetValidAccessTokenAsync(async (refreshToken) =>
+        {
+            var newToken = await RefreshAccessTokenAsync(refreshToken);
+            if (newToken == null)
+                return (null, 0, null);
+            // Microsoft may return a new refresh token; pass it along.
+            return (newToken.AccessToken, newToken.ExpiresIn, newToken.RefreshToken);
+        });
+
+        if (!tokenValid)
+            return false;
+
+        return await ZiskejData(connection);
+    }
+
+    private async Task<MicrosoftTokenResponse?> RefreshAccessTokenAsync(string refreshToken)
+    {
+        var client = new HttpClient();
+        var requestBody = new Dictionary<string, string>
+        {
+            ["client_id"] = _config["AzureAd:ClientId"]!,
+            ["client_secret"] = _config["AzureAd:ClientSecret"]!,
+            ["refresh_token"] = refreshToken,
+            ["grant_type"] = "refresh_token",
+            ["scope"] = "https://graph.microsoft.com/Calendars.ReadWrite offline_access"
+            //["redirect_uri"] = "/signin-microsoft"
+        };
+        
+
+        var response = await client.PostAsync(
+        "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        new FormUrlEncodedContent(requestBody)
+    );
+        //var response = await client.SendAsync(request);
+        var responseString = await response.Content.ReadAsStringAsync();
+        //TODO vrací 400
+        if (!response.IsSuccessStatusCode)
+        {
+            Console.WriteLine($"Microsoft refresh error: {response.StatusCode} - {responseString}");
+            return null;
+        }
+        var json = await response.Content.ReadAsStringAsync();
+        return JsonConvert.DeserializeObject<MicrosoftTokenResponse>(json);
+    }
+
+    private class MicrosoftTokenResponse
+    {
+        [JsonProperty("access_token")]
+        public string AccessToken { get; set; } = "";
+
+        [JsonProperty("expires_in")]
+        public int ExpiresIn { get; set; }
+
+        [JsonProperty("refresh_token")]
+        public string RefreshToken { get; set; } = "";
     }
 }

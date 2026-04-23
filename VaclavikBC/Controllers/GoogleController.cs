@@ -100,36 +100,18 @@ namespace VaclavikBC.Controllers
         /// <returns></returns>
         public async Task<bool> RefreshConnectionAsync(CalendarConnection connection)
         {
-            var (accessToken, needsOAuth) = await GetValidAccessTokenAsync(connection);
-            if (needsOAuth)
-                return false;
+            var valid = await connection.GetValidAccessTokenAsync(async (refreshToken) =>
+            {
+                var newToken = await RefreshAccessTokenAsync(refreshToken);
+                if (newToken == null)
+                    return (null, 0, null);
+                return (newToken.AccessToken, newToken.ExpiresIn, null);
+            });
 
-            connection.AccessToken = accessToken;
+            if (!valid)
+                return false;
             
             return await ZiskejData(connection);
-        }
-
-
-        private async Task<(string? AccessToken, bool OAuthRequired)> GetValidAccessTokenAsync(CalendarConnection connection)
-        {
-            if (!string.IsNullOrEmpty(connection.AccessToken) &&
-                connection.ExpirationTime > DateTime.UtcNow)
-            {
-                return (connection.AccessToken, false);
-            }
-
-            if (!string.IsNullOrEmpty(connection.RefreshToken))
-            {
-                var newToken = await RefreshAccessTokenAsync(connection.RefreshToken);
-                if (newToken != null)
-                {
-                    connection.AccessToken = newToken.AccessToken;
-                    connection.ExpirationTime = DateTime.UtcNow.AddSeconds(newToken.ExpiresIn);
-                    return (connection.AccessToken, false);
-                }
-            }
-
-            return (null, true);
         }
 
         private async Task<GoogleTokenResponse?> RefreshAccessTokenAsync(string refreshToken)
