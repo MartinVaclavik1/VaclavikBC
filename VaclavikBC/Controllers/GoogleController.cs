@@ -1,6 +1,4 @@
-﻿using Google.Apis.Auth.OAuth2.Responses;
-using Microsoft.AspNetCore.Mvc;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using VaclavikBC.Models;

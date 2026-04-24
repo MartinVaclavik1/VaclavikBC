@@ -1,5 +1,4 @@
-﻿using Humanizer;
-using Ical.Net.DataTypes;
+﻿using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;

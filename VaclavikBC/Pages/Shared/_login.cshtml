@@ -1,42 +1,42 @@
 ﻿<style>
 
-.auth-overlay {
-			position: fixed;
-			inset: 0;
-			z-index: 9999;
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			background: rgba(0,0,0,0.4);
-			backdrop-filter: blur(6px);
+	.auth-overlay {
+		position: fixed;
+		inset: 0;
+		z-index: 9999;
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		background: rgba(0,0,0,0.4);
+		backdrop-filter: blur(6px);
+	}
+
+	.auth-modal {
+		background: white;
+		width: 320px;
+		padding: 20px;
+		border-radius: 10px;
+		position: relative;
+	}
+
+		.auth-modal input {
+			width: 100%;
+			margin: 8px 0;
+			padding: 8px;
 		}
 
-		.auth-modal {
-			background: white;
-			width: 320px;
-			padding: 20px;
-			border-radius: 10px;
-			position: relative;
-		}
-
-			.auth-modal input {
-				width: 100%;
-				margin: 8px 0;
-				padding: 8px;
-			}
-
-			.auth-modal button {
-				width: 100%;
-				padding: 10px;
-				margin-top: 10px;
-			}
-
-		.switch {
-			text-align: center;
+		.auth-modal button {
+			width: 100%;
+			padding: 10px;
 			margin-top: 10px;
-			color: blue;
-			cursor: pointer;
 		}
+
+	.switch {
+		text-align: center;
+		margin-top: 10px;
+		color: blue;
+		cursor: pointer;
+	}
 
 		.switch.disabled {
 			pointer-events: none;
@@ -90,47 +90,6 @@
 	}
 
 	document.addEventListener("DOMContentLoaded", () => {
-
-		// document.getElementById("loginForm").addEventListener("submit", async (e) => {
-		// 	e.preventDefault();
-
-		// 	const form = e.target;
-		// 	const response = await fetch("/User/Login", {
-		// 		method: "POST",
-		// 		body: new FormData(form)
-		// 	});
-
-		// 	if (response.ok) {
-		// 		closeAuth();
-		// 		location.reload();
-		// 	} else {
-		// 		alert("Login failed");
-		// 	}
-		// });
-
-		// document.getElementById("registerForm").addEventListener("submit", async (e) => {
-		// 	e.preventDefault();
-
-		// 	const form = e.target;
-
-		// 	if (form.password.value !== form.confirmPassword.value) {
-		// 		alert("Passwords do not match");
-		// 		return;
-		// 	}
-
-		// 	const response = await fetch("/User/Register", {
-		// 		method: "POST",
-		// 		body: new FormData(form)
-		// 	});
-
-		// 	if (response.ok) {	//po registraci automaticky přihlásí
-		// 		alert("Registration successfull");
-		// 		closeAuth();
-		// 		location.reload();
-		// 	} else {
-		// 		alert("Registration failed");
-		// 	}
-		// });
 
 		document.getElementById("loginForm").addEventListener("submit", async (e) => {
 			e.preventDefault();
