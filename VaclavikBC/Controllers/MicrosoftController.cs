@@ -279,8 +279,7 @@ public class MicrosoftController : Controller
             ["client_secret"] = _config["AzureAd:ClientSecret"]!,
             ["refresh_token"] = refreshToken,
             ["grant_type"] = "refresh_token",
-            ["scope"] = "https://graph.microsoft.com/Calendars.ReadWrite offline_access"
-            //["redirect_uri"] = "/signin-microsoft"
+            ["scope"] = "https://graph.microsoft.com/Calendars.Read offline_access openid profile email"
         };
         
 
@@ -290,7 +289,6 @@ public class MicrosoftController : Controller
     );
         //var response = await client.SendAsync(request);
         var responseString = await response.Content.ReadAsStringAsync();
-        //TODO vrací 400
         if (!response.IsSuccessStatusCode)
         {
             Console.WriteLine($"Microsoft refresh error: {response.StatusCode} - {responseString}");

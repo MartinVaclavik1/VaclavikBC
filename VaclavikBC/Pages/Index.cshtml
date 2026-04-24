@@ -1076,7 +1076,6 @@
 
 			if (isAuthenticated) {
 				await fetchEventsForWeek(currentWeekStart);
-				await fetchConnectionStatus();	//volání metody z _HamburgerMenu
 			} else {
 				openAuth();
 			}

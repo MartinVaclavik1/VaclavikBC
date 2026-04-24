@@ -363,7 +363,11 @@
 			closeMenu.addEventListener('click', closeMenuFunction);
 		}
 
-		//await fetchConnectionStatus();
+		const isAuthenticated = @Html.Raw(User.Identity?.IsAuthenticated.ToString().ToLower());
+
+		if (isAuthenticated) {
+			await fetchConnectionStatus();
+		}
 	});
 
 	function oauthPopup(provider) {
