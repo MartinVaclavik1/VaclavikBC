@@ -144,7 +144,6 @@
 			color: #ccc;
 		}
 
-	/* Hamburger menu container */
 	.hamburger-menu {
 		position: relative;
 	}
@@ -153,22 +152,72 @@
 		text-align: center;
 	}
 
-	/* Menu toggle button (fixed position) */
-	.menu-toggle {
-		position: fixed;
-		top: 20px;
-		right: 20px;
-		z-index: 1100;
-		background: #333;
-		color: white;
+	.hamburger-menu .provider-btn {
 		border: none;
-		font-size: 20px;
-		padding: 8px 12px;
+		padding: 0.65rem 1.8rem;
+		border-radius: 12px;
+		font-size: 1rem;
+		font-weight: 500;
 		cursor: pointer;
-		border-radius: 4px;
+		transition: all 0.2s ease;
+		color: #ffffff;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+		margin: 0;
+		width: auto;
+		min-width: 160px;
 	}
 
-	/* The actual navigation menu (off-screen by default) */
+		.hamburger-menu .provider-btn:hover {
+			background: #1e2a3a;
+			transform: scale(0.97);
+			color: #ffffff;
+		}
+
+	.hamburger-menu .refresh-connection,
+	.hamburger-menu .delete-connection {
+		border: none;
+		padding: 0.4rem 0.8rem;
+		border-radius: 12px;
+		font-size: 0.8rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		color: #ffffff;
+		box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+	}
+
+		.hamburger-menu .refresh-connection:hover,
+		.hamburger-menu .delete-connection:hover {
+			background: #1e2a3a;
+			transform: scale(0.97);
+		}
+
+		.hamburger-menu .delete-connection:hover {
+			background: #1e2a3a;
+		}
+
+
+	.menu-toggle {
+		background: #4a6a85;
+		border: none;
+		padding: 0.65rem 1.8rem;
+		border-radius: 12px;
+		z-index: 1100;
+		font-size: 1rem;
+		font-weight: 500;
+		cursor: pointer;
+		transition: all 0.2s ease;
+		color: #ffffff;
+		box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+		margin: 0;
+	}
+
+		.menu-toggle:hover {
+			background: #3b5a73;
+			transform: scale(0.97);
+			color: #ffffff;
+		}
+
 	.menu {
 		display: flex;
 		flex-direction: column;
@@ -190,7 +239,6 @@
 			right: 0;
 		}
 
-		/* Menu links styling */
 		.menu ul {
 			list-style: none;
 			padding: 0;
@@ -218,6 +266,7 @@
 
 	body.menu-open .background-content {
 		opacity: 0.5;
+		z-index: 999;
 	}
 
 	.connections-list {
@@ -328,15 +377,6 @@
 	connection.start().catch(err => console.error(err));
 
 	document.addEventListener('DOMContentLoaded', async function () {
-		// const menuToggle = document.querySelector('.menu-toggle');
-		// const menu = document.querySelector('.menu');
-
-		// if (menuToggle && menu) {
-		// 	menuToggle.addEventListener('click', function () {
-		// 		menu.classList.toggle('open');
-		// 		document.body.classList.toggle('menu-open');
-		// 	});
-		// }
 
 		const menuToggle = document.querySelector('.menu-toggle');
 		const closeMenu = document.querySelector('.close-menu');
@@ -345,15 +385,11 @@
 		async function openMenu() {
 			menu.classList.add('open');
 			document.body.classList.add('menu-open');
-			menuToggle.style.display = "none";
-
-			//await fetchConnectionStatus(); //nepotřebujeme aktualizovat při každém otevření v případě že ano - odkomentovat
 		}
 
 		function closeMenuFunction() {
 			menu.classList.remove('open');
 			document.body.classList.remove('menu-open');
-			menuToggle.style.display = "block";
 		}
 
 		if (menuToggle) {
@@ -382,7 +418,6 @@
 			return;
 		}
 
-		// Open popup window (width, height)
 		const width = 600, height = 700;
 		const left = (screen.width - width) / 2;
 		const top = (screen.height - height) / 2;
