@@ -1,10 +1,13 @@
-﻿using Ical.Net.DataTypes;
+﻿using Humanizer;
+using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Security.Claims;
 using VaclavikBC.Data;
+using VaclavikBC.Hubs;
 using VaclavikBC.Models;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
@@ -16,9 +19,12 @@ namespace VaclavikBC.Controllers
     public class CalendarAPIController : ControllerBase
     {
         private readonly VaclavikBCContext _context;
-        public CalendarAPIController(VaclavikBCContext context)
+
+        private readonly IHubContext<CalendarSyncHub> _hubContext;
+        public CalendarAPIController(VaclavikBCContext context, IHubContext<CalendarSyncHub> hubContext)
         {
             _context = context;
+            _hubContext = hubContext;
         }
 
         [HttpGet("events")]
@@ -204,6 +210,29 @@ namespace VaclavikBC.Controllers
         public void Delete(int id)
         {
         }
+
+        [HttpPost("calendar/{calendarId}/color")]
+        public async Task<IActionResult> UpdateCalendarColor(int calendarId, [FromBody] string color)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (userId == null)
+                return Unauthorized();
+
+            var calendar = await _context.Calendar
+                .Include(c => c.CalendarConnection)
+                .FirstOrDefaultAsync(c => c.Id == calendarId && c.CalendarConnection.UserId == userId);
+
+            if (calendar == null)
+                return NotFound();
+            if (string.IsNullOrEmpty(color) || !color.StartsWith("#") || color.Length != 7)
+                return BadRequest("Invalid color format. Expected #RRGGBB");
+            calendar.BackgroundColor = color;
+
+            await _context.SaveChangesAsync();
+            await _hubContext.Clients.All.SendAsync("EventsChanged", "Calendar data updated");
+            return Ok();
+        }
+
         public class EventDto
         {
             public string Id { get; set; }          //ProviderId or generated instance id

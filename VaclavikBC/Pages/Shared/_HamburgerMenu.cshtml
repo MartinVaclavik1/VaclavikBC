@@ -326,7 +326,7 @@
 	});
 
 	connection.start().catch(err => console.error(err));
-	//TODO přidat event listener na změnu výběru color pickeru a refreshnout eventy
+
 	document.addEventListener('DOMContentLoaded', async function () {
 		// const menuToggle = document.querySelector('.menu-toggle');
 		// const menu = document.querySelector('.menu');
@@ -551,6 +551,27 @@
 				} catch (err) {
 					console.error('Toggle failed', err);
 					chk.checked = !selected;
+				}
+			});
+		});
+
+		document.querySelectorAll('.calendar-color-picker').forEach(picker => {
+			picker.addEventListener('change', async (e) => {
+				e.stopPropagation();
+				const calendarId = picker.dataset.id;
+				const newColor = picker.value;
+				try {
+					console.log(newColor);
+					const response = await fetch(`/api/CalendarAPI/calendar/${calendarId}/color`, {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify(newColor),
+						credentials: 'include'
+					});
+					if (!response.ok) throw new Error('Failed to save color');
+				} catch (err) {
+					console.error('Color update failed', err);
+					picker.value = picker.defaultValue;
 				}
 			});
 		});
