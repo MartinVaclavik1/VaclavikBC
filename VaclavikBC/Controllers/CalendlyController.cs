@@ -10,68 +10,79 @@ namespace VaclavikBC.Controllers
     public class CalendlyController
     {
         private readonly ISyncService _syncService;
-
-        public CalendlyController(ISyncService syncService)
+        private readonly IConfiguration _config;
+        const string BaseUrl = "https://api.calendly.com";
+        public CalendlyController(ISyncService syncService, IConfiguration config)
         {
             _syncService = syncService;
+            _config = config;
         }
 
-        public async void ZiskejData(CalendarConnection calendarConnection)
+        public async Task<bool> ZiskejData(CalendarConnection calendarConnection)
         {
             using var client = new HttpClient();
-
             client.DefaultRequestHeaders.Authorization =
                 new AuthenticationHeaderValue("Bearer", calendarConnection.AccessToken);
 
-            // 1. Get current user's URI
-            var userResponse = await client.GetAsync("https://api.calendly.com/users/me");
-            userResponse.EnsureSuccessStatusCode();
+            var userResponse = await client.GetAsync($"{BaseUrl}/users/me");
+            if (!userResponse.IsSuccessStatusCode)
+                return false;
             var userContent = await userResponse.Content.ReadAsStringAsync();
-            using var userDoc = JsonDocument.Parse(userContent);
-            var userUri = userDoc.RootElement.GetProperty("resource").GetProperty("uri").GetString();
+            using var doc = JsonDocument.Parse(userContent);
+            var userUri = doc.RootElement.GetProperty("resource").GetProperty("uri").GetString();
 
-            // 2. Get all event types (these act as calendars)
             var eventTypesResponse = await client.GetAsync(
-                $"https://api.calendly.com/event_types?user={Uri.EscapeDataString(userUri)}");
-            eventTypesResponse.EnsureSuccessStatusCode();
-            var eventTypesContent = await eventTypesResponse.Content.ReadAsStringAsync();
-            using var eventTypesDoc = JsonDocument.Parse(eventTypesContent);
-            Console.WriteLine(eventTypesContent.ToString());
-            if (!eventTypesDoc.RootElement.TryGetProperty("collection", out var eventTypes))
-                return;
-            Console.WriteLine(eventTypes.ToString());
-            // 3. Process each event type as a calendar
-            foreach (var eventType in eventTypes.EnumerateArray())
+                $"{BaseUrl}/event_types?user={Uri.EscapeDataString(userUri)}");
+            if (!eventTypesResponse.IsSuccessStatusCode)
+                return false;
+            var typesJson = await eventTypesResponse.Content.ReadAsStringAsync();
+            using var typesDoc = JsonDocument.Parse(typesJson);
+
+            var calendars = new Dictionary<string, Calendar>();
+            if (typesDoc.RootElement.TryGetProperty("collection", out var eventTypes))
             {
-                // Create a Calendar object from the event type data
-                var calendar = new Calendar
+                foreach (var et in eventTypes.EnumerateArray())
                 {
-                    IDProvider = eventType.GetProperty("uri").GetString(),
-                    Name = eventType.GetProperty("name").GetString(),
-                    TimeZone = eventType.TryGetProperty("timezone", out var tz) ? tz.GetString() : "UTC",
-                    BackgroundColor = eventType.TryGetProperty("color", out var color) ? color.GetString() : "#000000",
-                    Selected = true //calendly nemá selected, tak v základu zobrazíme
-                };
-
-                // 4. Fetch all scheduled events for this event type
-                string pageToken = null;
-                do
-                {
-                    //TODO?
-                    var eventsUrl = $"https://api.calendly.com/scheduled_events?user={Uri.EscapeDataString(userUri)}&status=active"; if (!string.IsNullOrEmpty(pageToken))
-                        eventsUrl += $"&page_token={pageToken}";
-
-                    var eventsResponse = await client.GetAsync(eventsUrl);
-                    eventsResponse.EnsureSuccessStatusCode();
-                    var eventsJson = await eventsResponse.Content.ReadAsStringAsync();
-                    using var eventsDoc = JsonDocument.Parse(eventsJson);
-
-                    if (eventsDoc.RootElement.TryGetProperty("collection", out var eventsCollection))
+                    var uri = et.GetProperty("uri").GetString();
+                    calendars[uri] = new Calendar
                     {
-                        foreach (var ev in eventsCollection.EnumerateArray())
+                        IDProvider = uri,
+                        Name = et.GetProperty("name").GetString(),
+                        TimeZone = et.TryGetProperty("timezone", out var tz) ? tz.GetString() : "UTC",
+                        BackgroundColor = et.TryGetProperty("color", out var c) ? c.GetString() : "#000000",
+                        Selected = true
+                    };
+                }
+            }
+
+            string pageToken = null;
+            do
+            {
+                var eventsUrl = $"{BaseUrl}/scheduled_events" +
+                                $"?user={Uri.EscapeDataString(userUri)}" +
+                                $"&status=active";
+
+                if (!string.IsNullOrEmpty(pageToken))
+                    eventsUrl += $"&page_token={pageToken}";
+
+                var eventsResponse = await client.GetAsync(eventsUrl);
+
+                if (!eventsResponse.IsSuccessStatusCode)
+                    return false;
+
+                var eventsJson = await eventsResponse.Content.ReadAsStringAsync();
+                using var eventsDoc = JsonDocument.Parse(eventsJson);
+
+                if (eventsDoc.RootElement.TryGetProperty("collection", out var events))
+                {
+                    foreach (var ev in events.EnumerateArray())
+                    {
+                        var eventTypeUri = ev.TryGetProperty("event_type", out var et)
+                                           ? et.GetString() : null;
+
+                        if (eventTypeUri != null && calendars.TryGetValue(eventTypeUri, out var cal))
                         {
-                            // Map Calendly event to CalendarEvent
-                            var calendarEvent = new CalendarEvent
+                            cal.Events.Add(new CalendarEvent
                             {
                                 ProviderId = ev.GetProperty("uri").GetString(),
                                 Title = ev.GetProperty("name").GetString(),
@@ -84,30 +95,80 @@ namespace VaclavikBC.Controllers
                                 {
                                     DateTime = DateTimeOffset.Parse(ev.GetProperty("end_time").GetString()),
                                     TimeZone = "UTC"
-                                }
-                                // Add other properties if needed (status, location, etc.)
-                            };
-                            calendar.Events.Add(calendarEvent);
+                                },
+                                Calendar = cal,
+                                CalendarId = cal.Id
+                            });
                         }
                     }
+                }
 
-                    // Pagination
-                    pageToken = eventsDoc.RootElement.TryGetProperty("pagination", out var pagination) &&
-                                pagination.TryGetProperty("next_page_token", out var token) &&
-                                token.ValueKind != JsonValueKind.Null
-                                ? token.GetString()
-                                : null;
+                pageToken = eventsDoc.RootElement.TryGetProperty("pagination", out var pag) &&
+                            pag.TryGetProperty("next_page_token", out var token) &&
+                            token.ValueKind != JsonValueKind.Null
+                            ? token.GetString()
+                            : null;
 
-                } while (pageToken != null);
+            } while (pageToken != null);
 
-                // 5. Set reference and add to connection
-                calendar.SetEventsReference();
-                calendarConnection.Calendars.Add(calendar);
+            foreach (var cal in calendars.Values)
+            {
+                cal.SetEventsReference();
+                calendarConnection.Calendars.Add(cal);
             }
-
             calendarConnection.SetCalendarsReference();
+
             await _syncService.SyncCalendarConnectionAsync(calendarConnection);
+            return true;
         }
+
+        public async Task<bool> RefreshConnectionAsync(CalendarConnection conn)
+        {
+            var valid = await conn.GetValidAccessTokenAsync(async (refreshToken) =>
+            {
+                var newToken = await RefreshAccessTokenAsync(refreshToken);
+                if (newToken == null)
+                    return (null, 0, null);
+                return (newToken.AccessToken, newToken.ExpiresIn, newToken.RefreshToken);
+            });
+
+            if (!valid)
+                return false;
+
+            return await ZiskejData(conn);
+        }
+
+        private async Task<CalendlyTokenResponse?> RefreshAccessTokenAsync(string refreshToken)
+        {
+            using var client = new HttpClient();
+            var requestBody = new Dictionary<string, string>
+            {
+                ["client_id"] = _config["Calendly:ClientId"]!,
+                ["client_secret"] = _config["Calendly:ClientSecret"]!,
+                ["refresh_token"] = refreshToken,
+                ["grant_type"] = "refresh_token"
+            };
+
+            var response = await client.PostAsync("https://auth.calendly.com/oauth/token",
+                new FormUrlEncodedContent(requestBody));
+
+            if (!response.IsSuccessStatusCode)
+                return null;
+
+            var json = await response.Content.ReadAsStringAsync();
+            return JsonConvert.DeserializeObject<CalendlyTokenResponse>(json);
+        }
+
+        public class CalendlyTokenResponse
+        {
+            [JsonProperty("access_token")]
+            public string AccessToken { get; set; } = "";
+            [JsonProperty("expires_in")]
+            public int ExpiresIn { get; set; }
+            [JsonProperty("refresh_token")]
+            public string? RefreshToken { get; set; }
+        }
+
     }
 }
 

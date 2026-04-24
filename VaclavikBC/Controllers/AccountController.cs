@@ -78,7 +78,7 @@
                     await _microsoftController.ZiskejData(calendarConnection);
                     break;
                 case nameof(Providers.Calendly):
-                    _calendlyController.ZiskejData(calendarConnection);
+                    await _calendlyController.ZiskejData(calendarConnection);
                     break;
                 default:
                     return Content("Error getting calendar data");

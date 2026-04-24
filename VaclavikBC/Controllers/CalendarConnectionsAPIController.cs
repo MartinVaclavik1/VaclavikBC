@@ -76,14 +76,13 @@ namespace VaclavikBC.Controllers
                         return Unauthorized();
                     }
                     break;
-                    //TODO
-                //case nameof(Providers.Calendly):
-                //    successful = await _calendlyController.RefreshConnectionAsync(conn);
-                //    if (!successful)
-                //    {
-                //        return Unauthorized();
-                //    }
-                //    break;
+                case nameof(Providers.Calendly):
+                    successful = await _calendlyController.RefreshConnectionAsync(conn);
+                    if (!successful)
+                    {
+                        return Unauthorized();
+                    }
+                    break;
                 default:
                     return NotFound();
                     break;
