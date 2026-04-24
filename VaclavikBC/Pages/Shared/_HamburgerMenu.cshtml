@@ -365,16 +365,16 @@
 <script>
 
 	//refresh zobrazení připojení
-	const connection = new signalR.HubConnectionBuilder()
-		.withUrl("/calendarSyncHub")
-		.build();
+	const connection_menu = new signalR.HubConnectionBuilder()
+			.withUrl("/calendarSyncHub")
+			.build();
 
-	connection.on("ConnectionChanged", async (message) => {
-		console.log("Connection changed:", messsage);
-		await fetchConnectionStatus();
-	});
+		connection_menu.on("ConnectionChanged", async (message) => {
+			console.log("Connection changed:", message);
+			await fetchConnectionStatus();
+		});
 
-	connection.start().catch(err => console.error(err));
+		connection_menu.start().catch(err => console.error(err));
 
 	document.addEventListener('DOMContentLoaded', async function () {
 
@@ -442,7 +442,7 @@
 		}
 	}
 
-		function renderConnections(connections) {
+	function renderConnections(connections) {
 		const container = document.getElementById('connections-container');
 		if (!container) return;
 
