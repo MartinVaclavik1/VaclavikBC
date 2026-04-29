@@ -25,6 +25,10 @@ public class MicrosoftController : Controller
 
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", calendarConnection.AccessToken);
+        client.DefaultRequestHeaders.Add(
+            "Prefer",
+            "outlook.timezone=\"Central European Standard Time\""
+        );
 
         var calendarsResponse = await client.GetAsync("https://graph.microsoft.com/v1.0/me/calendars");
         if (!calendarsResponse.IsSuccessStatusCode)

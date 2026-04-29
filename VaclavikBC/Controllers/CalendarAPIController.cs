@@ -28,7 +28,7 @@ namespace VaclavikBC.Controllers
 
         [HttpGet("events")]
         public async Task<IActionResult> GetEvents(
-       [FromQuery] DateTime start,   
+       [FromQuery] DateTime start,
        [FromQuery] DateTime end)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -110,9 +110,9 @@ namespace VaclavikBC.Controllers
             {
                 DtStart = new CalDateTime(ev.Start.ToUniversalTime()),
                 DtEnd = new CalDateTime(ev.End.ToUniversalTime()),
-                
+
             };
-            
+
 
             foreach (var ruleString in ev.RecurrenceRules)
             {
@@ -164,7 +164,7 @@ namespace VaclavikBC.Controllers
 
                     if (start < rangeEnd && end > rangeStart)
                     {
-                        occurrences.Add((start, end));
+                        occurrences.Add((start.ToLocalTime(), end.ToLocalTime()));
                         Debug.WriteLine($"Added occurrence: {start} - {end}");
                     }
                 }
