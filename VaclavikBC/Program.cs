@@ -1,5 +1,4 @@
 ﻿using AspNet.Security.OAuth.Calendly;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using System.Text.Json.Serialization;
@@ -41,22 +40,19 @@ builder.Services.AddAuthentication(
 {
     options.DefaultScheme = IdentityConstants.ApplicationScheme;
     options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    //options.DefaultScheme = CookieAuthenticationDefaults.AuthenticationScheme;
 }
-
-//CookieAuthenticationDefaults.AuthenticationScheme
 )
     .AddCookie(options =>
 {
     options.LoginPath = "/Account/Login";
 })
 
-    .AddGoogle(options =>   //potřebuje cookie nahoře, ale to zas nepustí Microsoft
+    .AddGoogle(options => 
     {
         options.ClientId = builder.Configuration["Google:ClientId"];
         options.ClientSecret = builder.Configuration["Google:ClientSecret"];
         options.Scope.Add("https://www.googleapis.com/auth/calendar.readonly");
-        options.SaveTokens = true; // Store tokens in the authentication properties
+        options.SaveTokens = true;
 
         //umožní ukládat refresh token
         options.Events.OnRedirectToAuthorizationEndpoint = context =>
@@ -67,13 +63,6 @@ builder.Services.AddAuthentication(
             return Task.CompletedTask;
         };
     })
-//.AddMicrosoftAccount("Microsoft", options => {    //staré
-//    options.ClientId = builder.Configuration["AzureAd:ClientId"];
-//    options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
-//    options.Scope.Add("wl.calendars");
-//    options.Scope.Add("wl.offline_access");
-//    options.SaveTokens = true;
-//})
 .AddCalendly("Calendly", options =>
 {
     options.ClientId = builder.Configuration["Calendly:ClientId"];
@@ -81,32 +70,6 @@ builder.Services.AddAuthentication(
     options.SaveTokens = true;
     options.CallbackPath = "/signin-calendly";
 })
-//.AddMicrosoftIdentityWebApp(builder.Configuration.GetSection("AzureAd"), "Microsoft")
-//    .EnableTokenAcquisitionToCallDownstreamApi()
-//    .AddInMemoryTokenCaches();
-
-//builder.Services.AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
-//.AddMicrosoftIdentityWebApp(options =>
-//    {
-//        options.ClientId = builder.Configuration["AzureAd:ClientId"];
-//        options.ClientSecret = builder.Configuration["AzureAd:ClientSecret"];
-//        options.Instance = builder.Configuration["AzureAd:Instance"];
-//        options.TenantId = builder.Configuration["AzureAd:TenantId"];
-//        options.CallbackPath = builder.Configuration["AzureAd:CallbackPath"];
-//        //builder.Configuration.GetSection("AzureAd").Bind(options);
-//        options.SaveTokens = true;       
-//        options.ResponseType = "code";  
-//        options.Scope.Add("offline_access");
-
-//        options.Scope.Add("email");            
-//        options.Scope.Add("Calendars.Read");
-//        //options.ResponseType = "code";
-//        //options.SaveTokens = true; 
-//        //options.Scope.Add("Calendars.Read");
-//        //options.Scope.Add("offline_access");
-//    }, openIdConnectScheme: "Microsoft", cookieScheme: CookieAuthenticationDefaults.AuthenticationScheme)
-//    .EnableTokenAcquisitionToCallDownstreamApi()
-//    .AddInMemoryTokenCaches();
 .AddOpenIdConnect("Microsoft", options =>
 {
     options.Authority = "https://login.microsoftonline.com/common/v2.0";
@@ -126,11 +89,9 @@ builder.Services.AddAuthentication(
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error");
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 
