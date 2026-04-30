@@ -108,8 +108,8 @@ namespace VaclavikBC.Controllers
             var calendar = new Ical.Net.Calendar();
             var icalEvent = new Ical.Net.CalendarComponents.CalendarEvent
             {
-                DtStart = new CalDateTime(ev.Start.ToUniversalTime()),
-                DtEnd = new CalDateTime(ev.End.ToUniversalTime()),
+                DtStart = new CalDateTime(ev.Start, "Europe/Prague"),
+                DtEnd = new CalDateTime(ev.End, "Europe/Prague"),
 
             };
 
@@ -142,8 +142,8 @@ namespace VaclavikBC.Controllers
 
             calendar.Events.Add(icalEvent);
 
-            var calStart = new CalDateTime(rangeStart.ToUniversalTime());
-            var calEnd = new CalDateTime(rangeEnd.ToUniversalTime());
+            var calStart = new CalDateTime(rangeStart, "Europe/Prague");
+            var calEnd = new CalDateTime(rangeEnd, "Europe/Prague");
 
             var options = new EvaluationOptions
             {
@@ -164,7 +164,7 @@ namespace VaclavikBC.Controllers
 
                     if (start < rangeEnd && end > rangeStart)
                     {
-                        occurrences.Add((start.ToLocalTime(), end.ToLocalTime()));
+                        occurrences.Add((start, end));
                         Debug.WriteLine($"Added occurrence: {start} - {end}");
                     }
                 }
