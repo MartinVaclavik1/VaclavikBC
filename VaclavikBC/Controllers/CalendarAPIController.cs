@@ -98,12 +98,8 @@ namespace VaclavikBC.Controllers
 
             if (ev.RecurrenceRules == null || !ev.RecurrenceRules.Any())
             {
-                Debug.WriteLine($"No recurrence rules for event {ev.Title}");
                 return occurrences;
             }
-
-            Debug.WriteLine($"Expanding recurrence for '{ev.Title}' between {rangeStart} and {rangeEnd}");
-            Debug.WriteLine($"Base event Start: {ev.Start}, End: {ev.End}");
 
             var calendar = new Ical.Net.Calendar();
             var icalEvent = new Ical.Net.CalendarComponents.CalendarEvent
@@ -116,12 +112,10 @@ namespace VaclavikBC.Controllers
 
             foreach (var ruleString in ev.RecurrenceRules)
             {
-                Debug.WriteLine($"Raw rule: '{ruleString}'");
                 if (string.IsNullOrWhiteSpace(ruleString) || !ruleString.StartsWith("RRULE:"))
                     continue;
 
-                var rruleString = ruleString.Substring(6); // remove "RRULE:"
-                Debug.WriteLine($"Parsed RRULE: '{rruleString}'");
+                var rruleString = ruleString.Substring(6);
 
                 try
                 {
@@ -154,7 +148,6 @@ namespace VaclavikBC.Controllers
             {
                 var allOccurrences = calendar.GetOccurrences(calStart, options)
             .TakeWhile(occ => occ.Period.StartTime.Value <= rangeEnd);
-                Debug.WriteLine($"GetOccurrences returned {allOccurrences.Count()} total occurrences before filtering.");
 
                 foreach (var occ in allOccurrences)
                 {
@@ -165,7 +158,6 @@ namespace VaclavikBC.Controllers
                     if (start < rangeEnd && end > rangeStart)
                     {
                         occurrences.Add((start, end));
-                        Debug.WriteLine($"Added occurrence: {start} - {end}");
                     }
                 }
             }
@@ -174,7 +166,6 @@ namespace VaclavikBC.Controllers
                 Debug.WriteLine($"Error during GetOccurrences: {ex.Message}");
             }
 
-            Debug.WriteLine($"Returning {occurrences.Count} occurrences within range.");
             return occurrences;
         }
 
