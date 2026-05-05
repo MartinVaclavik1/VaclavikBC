@@ -1,6 +1,7 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using System.Globalization;
 using System.Net.Http.Headers;
 using System.Text.Json;
 using VaclavikBC.Models;
@@ -25,10 +26,7 @@ public class MicrosoftController : Controller
 
         client.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", calendarConnection.AccessToken);
-        client.DefaultRequestHeaders.Add(
-            "Prefer",
-            "outlook.timezone=\"Central European Standard Time\""
-        );
+        client.DefaultRequestHeaders.Add("Prefer","outlook.timezone=\"UTC\"");
 
         var calendarsResponse = await client.GetAsync("https://graph.microsoft.com/v1.0/me/calendars");
         if (!calendarsResponse.IsSuccessStatusCode)
@@ -41,11 +39,11 @@ public class MicrosoftController : Controller
             throw new Exception("No calendars found in response.");
         }
 
-        var calendarModels = new List<Calendar>();
+        var calendarModels = new List<Models.Calendar>();
 
         foreach (var calElement in calendarsArray.EnumerateArray())
         {
-            var calendar = new Calendar
+            var calendar = new Models.Calendar
             {
                 IDProvider = calElement.GetProperty("id").GetString(),
                 Name = calElement.GetProperty("name").GetString(),
@@ -105,11 +103,14 @@ public class MicrosoftController : Controller
     }
     private CalendarEvent MapEventFromGraph(JsonElement ev)
     {
+
+        bool isAllDay = ev.TryGetProperty("isAllDay", out var prop) && prop.GetBoolean();
+
         var calendarEvent = new CalendarEvent
         {
             ProviderId = ev.GetProperty("id").GetString(),
-            StartInfo = MapEventDateTime(ev.GetProperty("start")),
-            EndInfo = MapEventDateTime(ev.GetProperty("end")),
+            StartInfo = MapEventDateTime(ev.GetProperty("start"), isAllDay),
+            EndInfo = MapEventDateTime(ev.GetProperty("end"), isAllDay),
             RecurrenceRules = new List<string>()
         };
         
@@ -129,12 +130,15 @@ public class MicrosoftController : Controller
         return calendarEvent;
     }
 
-    private EventDateTime MapEventDateTime(JsonElement dateTimeElement)
+    private EventDateTime MapEventDateTime(JsonElement dateTimeElement, bool isAllDay)
     {
         var eventDateTime = new EventDateTime();
         if (dateTimeElement.TryGetProperty("dateTime", out var dt))
         {
-            eventDateTime.DateTime = DateTimeOffset.Parse(dt.GetString());
+            if (isAllDay)
+                eventDateTime.Date = DateTime.Parse(dt.GetString());
+            else
+                eventDateTime.DateTime = DateTime.Parse(dt.GetString(), CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal).ToUniversalTime();
         }
         if (dateTimeElement.TryGetProperty("date", out var d))
         {

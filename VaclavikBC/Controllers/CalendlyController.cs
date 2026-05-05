@@ -47,7 +47,7 @@ namespace VaclavikBC.Controllers
                     {
                         IDProvider = uri,
                         Name = et.GetProperty("name").GetString(),
-                        TimeZone = et.TryGetProperty("timezone", out var tz) ? tz.GetString() : "UTC",
+                        TimeZone = et.TryGetProperty("timezone", out var tz) ? tz.GetString() : "",
                         BackgroundColor = et.TryGetProperty("color", out var c) ? c.GetString() : "#000000",
                         Selected = true
                     };
@@ -87,13 +87,13 @@ namespace VaclavikBC.Controllers
                                 Title = ev.GetProperty("name").GetString(),
                                 StartInfo = new EventDateTime
                                 {
-                                    DateTime = DateTimeOffset.Parse(ev.GetProperty("start_time").GetString()),
-                                    TimeZone = "UTC"
+                                    DateTime = DateTimeOffset.Parse(ev.GetProperty("start_time").GetString()).ToUniversalTime(),
+                                    TimeZone = ""
                                 },
                                 EndInfo = new EventDateTime
                                 {
-                                    DateTime = DateTimeOffset.Parse(ev.GetProperty("end_time").GetString()),
-                                    TimeZone = "UTC"
+                                    DateTime = DateTimeOffset.Parse(ev.GetProperty("end_time").GetString()).ToUniversalTime(),
+                                    TimeZone = ""
                                 },
                                 Calendar = cal,
                                 CalendarId = cal.Id

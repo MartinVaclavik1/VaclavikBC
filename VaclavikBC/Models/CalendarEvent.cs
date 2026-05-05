@@ -84,26 +84,6 @@ namespace VaclavikBC.Models
         */
         public int Id { get; set; }
 
-        //public String TimeZone { get; set; }
-        //[DataType(DataType.DateTime)]
-        //public DateTime Start { get; set; } //Možnost, že bude jen Date (celodenní) =>
-        //                                    //v tom případě nastavit time 0:00 a end na 23:59
-        //                                    //nebo 
-        //[DataType(DataType.DateTime)]
-        //public DateTime End { get; set; }
-        //public int CalendarId { get; set; }
-        //public Calendar Calendar { get; set; }
-        //public string? RRULE { get; set; }
-        /*
-         * "RRULE:FREQ=DAILY"
-         * "RRULE:FREQ=WEEKLY;BYDAY=TU"
-         * "RRULE:FREQ=MONTHLY;BYDAY=2TU"
-         * "RRULE:FREQ=YEARLY"
-         * "RRULE:FREQ=WEEKLY;BYDAY=FR,MO,TH,TU,WE"
-         * "RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20260617T215959Z;BYDAY=TU,TH,SU"
-         * "RRULE:FREQ=MONTHLY;COUNT=13"
-         */
-
         [JsonProperty("id")]
         public string ProviderId { get; set; }
 
@@ -119,18 +99,25 @@ namespace VaclavikBC.Models
         [JsonProperty("recurrence")]
         public List<string>? RecurrenceRules { get; set; }
 
-        // Computed properties for easy access
         public DateTime Start => StartInfo?.GetDateTime() ?? DateTime.MinValue;
         public DateTime End => EndInfo?.GetDateTime() ?? DateTime.MinValue;
         public string TimeZone => StartInfo?.TimeZone ?? EndInfo?.TimeZone ?? "";
 
-        // Relational fields (not in JSON)
         [JsonIgnore]
         public int CalendarId { get; set; }
         [JsonIgnore]
         public Calendar Calendar { get; set; }
 
         public string? RRULE => RecurrenceRules?.FirstOrDefault(r => r.StartsWith("RRULE:"))?.Substring(6);
+        /*
+         * "RRULE:FREQ=DAILY"
+         * "RRULE:FREQ=WEEKLY;BYDAY=TU"
+         * "RRULE:FREQ=MONTHLY;BYDAY=2TU"
+         * "RRULE:FREQ=YEARLY"
+         * "RRULE:FREQ=WEEKLY;BYDAY=FR,MO,TH,TU,WE"
+         * "RRULE:FREQ=WEEKLY;WKST=SU;UNTIL=20260617T215959Z;BYDAY=TU,TH,SU"
+         * "RRULE:FREQ=MONTHLY;COUNT=13"
+         */
     }
 
     [Owned]
@@ -138,11 +125,11 @@ namespace VaclavikBC.Models
     {
         [JsonProperty("dateTime")]
         [DataType(DataType.DateTime)]
-        public DateTimeOffset? DateTime { get; set; }   // Preserves offset
+        public DateTimeOffset? DateTime { get; set; }
 
         [JsonProperty("date")]
         [DataType(DataType.Date)]
-        public DateTime? Date { get; set; }             // For all-day events
+        public DateTime? Date { get; set; }
 
         [JsonProperty("timeZone")]
         public string? TimeZone { get; set; }
@@ -150,9 +137,10 @@ namespace VaclavikBC.Models
         public DateTime GetDateTime()
         {
             if (DateTime.HasValue)
-                return DateTime.Value.LocalDateTime; // or .UtcDateTime
+                return DateTime.Value.UtcDateTime;
             if (Date.HasValue)
-                return Date.Value;                   // All-day event
+                return System.DateTime.SpecifyKind(Date.Value, DateTimeKind.Utc);
+
             throw new InvalidOperationException("No date or dateTime provided");
         }
     }

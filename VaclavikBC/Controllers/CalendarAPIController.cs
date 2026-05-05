@@ -1,10 +1,12 @@
-﻿using Ical.Net.DataTypes;
+﻿using Humanizer;
+using Ical.Net.DataTypes;
 using Ical.Net.Evaluation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Diagnostics;
 using System.Security.Claims;
+using TimeZoneConverter;
 using VaclavikBC.Data;
 using VaclavikBC.Hubs;
 using VaclavikBC.Models;
@@ -29,11 +31,25 @@ namespace VaclavikBC.Controllers
         [HttpGet("events")]
         public async Task<IActionResult> GetEvents(
        [FromQuery] DateTime start,
-       [FromQuery] DateTime end)
+       [FromQuery] DateTime end,
+       [FromQuery] string timezone = null)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             if (userId == null)
                 return Unauthorized();
+
+            TimeZoneInfo targetZone = TimeZoneInfo.Utc;
+            if (!string.IsNullOrEmpty(timezone))
+            {
+                try
+                {
+                    targetZone = TZConvert.GetTimeZoneInfo(timezone);
+                }
+                catch (TimeZoneNotFoundException)
+                {
+                    targetZone = TimeZoneInfo.Utc;
+                }
+            }
 
             var selectedCalendars = await _context.Calendar
                 .Include(c => c.Events)
@@ -50,52 +66,120 @@ namespace VaclavikBC.Controllers
                     DateTime eventStart = ev.Start;
                     DateTime eventEnd = ev.End;
 
+                    if (isAllDay)
+                    {
+                        eventStart = TimeZoneInfo.ConvertTimeToUtc(eventStart.AtMidnight(), targetZone);
+                        eventEnd = TimeZoneInfo.ConvertTimeToUtc(eventEnd.AtMidnight(), targetZone);
+                    }
+
                     if (ev.RecurrenceRules != null && ev.RecurrenceRules.Any())
                     {
-                        var occurrences = ExpandRecurrence(ev, start, end);
+                        var occurrences = ExpandRecurrence(ev, eventStart, eventEnd, start, end, targetZone);
                         foreach (var occ in occurrences)
                         {
-                            if (occ.Start < end && occ.End > start)
+                            var segments = SplitIntoDailySegments(occ.Start, occ.End, start, end, targetZone);
+                            foreach (var seg in segments)
+                            {
+                                if (seg.Start < end && seg.End > start)
+                                {
+                                
+                                    result.Add(new EventDto
+                                    {
+                                        Id = $"{ev.ProviderId}_{seg.Start:yyyyMMddHHmmss}",
+                                        Title = ev.Title,
+                                        Start = seg.Start,
+                                        End = seg.End,
+                                        Fc = calendar.ForegroundColor,
+                                        Bc = calendar.BackgroundColor
+                                    });
+                                }
+                            }
+                        }
+                    }
+                    else
+                    {
+                        var segments = SplitIntoDailySegments(eventStart, eventEnd, start, end, targetZone);
+                        foreach (var seg in segments)
+                        {
+                            if (seg.Start < end && seg.End > start)
                             {
                                 result.Add(new EventDto
                                 {
-                                    Id = $"{ev.ProviderId}_{occ.Start:yyyyMMddHHmmss}",
+                                    Id = ev.ProviderId,
                                     Title = ev.Title,
-                                    Start = occ.Start,
-                                    End = occ.End,
+                                    Start = seg.Start,
+                                    End = seg.End,
                                     Fc = calendar.ForegroundColor,
                                     Bc = calendar.BackgroundColor
                                 });
                             }
                         }
                     }
-                    else
-                    {
-                        //kontrola, jestli je v aktuálním týdnu
-                        if (eventStart < end && eventEnd > start)
-                        {
-                            result.Add(new EventDto
-                            {
-                                Id = ev.ProviderId,
-                                Title = ev.Title,
-                                Start = eventStart,
-                                End = eventEnd,
-                                Fc = calendar.ForegroundColor,
-                                Bc = calendar.BackgroundColor
-                            });
-                        }
-                    }
                 }
             }
 
-            return Ok(result);
-        }
+            var convertedResult = result.Select(e => new EventDto
+            {
+                Id = e.Id,
+                Title = e.Title,
+                Start = TimeZoneInfo.ConvertTimeFromUtc(e.Start, targetZone),
+                End = TimeZoneInfo.ConvertTimeFromUtc(e.End, targetZone),
+                Fc = e.Fc,
+                Bc = e.Bc
+            });
 
+            return Ok(convertedResult);
+        }
+        private DateTime Max(DateTime a, DateTime b) => a > b ? a : b;
+        private DateTime Min(DateTime a, DateTime b) => a < b ? a : b;
+        private IEnumerable<(DateTime Start, DateTime End)> SplitIntoDailySegments(
+    DateTime originalStart, DateTime originalEnd, DateTime weekStart, DateTime weekEnd, TimeZoneInfo zone)
+        {
+            var segments = new List<(DateTime, DateTime)>();
+            
+            if (originalStart.Date == originalEnd.Date)
+            {
+                segments.Add((originalStart, originalEnd));
+                return segments;
+            }
+
+            originalStart = TimeZoneInfo.ConvertTimeFromUtc(originalStart, zone);
+            originalEnd = TimeZoneInfo.ConvertTimeFromUtc(originalEnd, zone);
+            weekStart = TimeZoneInfo.ConvertTimeFromUtc(weekStart, zone);
+            weekEnd = TimeZoneInfo.ConvertTimeFromUtc(weekEnd, zone);
+
+
+            DateTime dayStart = originalStart.Date;
+            while (dayStart < originalEnd)
+            {
+                DateTime segmentStart = Max(originalStart, dayStart);    //když jde o 2 den, tak se nastaví čas na 0:00
+                DateTime segmentEnd = Min(originalEnd, dayStart.AddDays(1));
+                //DateTime clippedStart = Max(segmentStart, weekStart);
+                //DateTime clippedEnd = Min(segmentEnd, weekEnd);
+
+                if (segmentStart < segmentEnd)
+                {
+                    segments.Add((NastavUTC(segmentStart, zone), NastavUTC(segmentEnd, zone)));
+                }
+
+
+                dayStart = dayStart.AddDays(1);
+            }
+
+            return segments;
+        }
+        private DateTime NastavUTC(DateTime datum, TimeZoneInfo info)
+        {
+            return TimeZoneInfo.ConvertTimeToUtc(datum, info);
+        }
+        private DateTime NastavNaLocal(DateTime datum)
+        {
+            return TimeZoneInfo.ConvertTimeFromUtc(datum, TimeZoneInfo.Local);
+        }
         private List<(DateTime Start, DateTime End)> ExpandRecurrence(
-    CalendarEvent ev, DateTime rangeStart, DateTime rangeEnd)
+    CalendarEvent ev, DateTime eventStart, DateTime eventEnd, DateTime rangeStart, DateTime rangeEnd, TimeZoneInfo zone)
         {
             var occurrences = new List<(DateTime, DateTime)>();
-
             if (ev.RecurrenceRules == null || !ev.RecurrenceRules.Any())
             {
                 return occurrences;
@@ -104,8 +188,8 @@ namespace VaclavikBC.Controllers
             var calendar = new Ical.Net.Calendar();
             var icalEvent = new Ical.Net.CalendarComponents.CalendarEvent
             {
-                DtStart = new CalDateTime(ev.Start, "Europe/Prague"),
-                DtEnd = new CalDateTime(ev.End, "Europe/Prague"),
+                DtStart = new CalDateTime(TimeZoneInfo.ConvertTimeFromUtc(eventStart, zone), zone.ToString()),
+                DtEnd = new CalDateTime(TimeZoneInfo.ConvertTimeFromUtc(eventEnd, zone), zone.ToString()),
 
             };
 
@@ -136,8 +220,8 @@ namespace VaclavikBC.Controllers
 
             calendar.Events.Add(icalEvent);
 
-            var calStart = new CalDateTime(rangeStart, "Europe/Prague");
-            var calEnd = new CalDateTime(rangeEnd, "Europe/Prague");
+            var calStart = new CalDateTime(TimeZoneInfo.ConvertTimeFromUtc(rangeStart, zone), zone.ToString());
+            var calEnd = new CalDateTime(TimeZoneInfo.ConvertTimeFromUtc(rangeEnd, zone), zone.ToString());
 
             var options = new EvaluationOptions
             {
@@ -157,7 +241,7 @@ namespace VaclavikBC.Controllers
 
                     if (start < rangeEnd && end > rangeStart)
                     {
-                        occurrences.Add((start, end));
+                        occurrences.Add((TimeZoneInfo.ConvertTimeToUtc(start, zone), TimeZoneInfo.ConvertTimeToUtc(end, zone) ));
                     }
                 }
             }

@@ -97,7 +97,8 @@ namespace VaclavikBC.Controllers
             {
                 _context.CalendarConnection.Remove(conn);
                 await _context.SaveChangesAsync();
-                await _hubContext.Clients.All.SendAsync("ConnectionChanged", "Calendar data updated");
+                await _hubContext.Clients.All.SendAsync("ConnectionChanged", "Calendar deleted");
+                await _hubContext.Clients.All.SendAsync("EventsChanged", "Calendar deleted");
             }
             return Ok();
         }

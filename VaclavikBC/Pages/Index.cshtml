@@ -364,6 +364,7 @@
 	<div class="calendar-wrapper"><div class="calendar" id="calendarGrid"></div></div>
 
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.7/signalr.min.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/luxon@3.4.4/build/global/luxon.min.js"></script>
 	<script>
 		let eventsByDate = {};        
 		let currentWeekStart = null;
@@ -427,10 +428,12 @@
 			showLoading();
 			const weekEnd = new Date(weekStart);
 			weekEnd.setDate(weekStart.getDate() + 7);
+			const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
 			const params = new URLSearchParams({
 				start: weekStart.toISOString(),
-				end: weekEnd.toISOString()
+				end: weekEnd.toISOString(),
+				timezone: timezone
 			});
 
 			try {
@@ -443,14 +446,18 @@
 				for (const ev of events) {
 					const start = new Date(ev.start);
 					const end = new Date(ev.end);
+
+					const startLocal = luxon.DateTime.fromISO(ev.start, { zone: timezone });
+					const endLocal = luxon.DateTime.fromISO(ev.end, { zone: timezone });
+
 					const fc = ev.fc || '#ffffff';
 					const bc = ev.bc || '#4a9eff';
 
-					const isAllDay = (start.getHours() === 0 && start.getMinutes() === 0 &&
-									  end.getHours() === 0 && end.getMinutes() === 0 &&
-									  end > start);
+					const isAllDay = (startLocal.hour === 0 && startLocal.minute === 0 &&
+						  endLocal.hour === 0 && endLocal.minute === 0 &&
+						  endLocal > startLocal);
 
-					const dateKey = formatYMD(start);
+					const dateKey = formatYMD(startLocal);
 					if (!newEventsByDate[dateKey]) newEventsByDate[dateKey] = [];
 
 					let startMin, endMin;
@@ -458,9 +465,9 @@
 						startMin = 0;
 						endMin = 24 * 60;
 					} else {
-						startMin = start.getHours() * 60 + start.getMinutes();
-						endMin = end.getHours() * 60 + end.getMinutes();
-						if (endMin === 0 && end > start) endMin = 24 * 60;
+						startMin = startLocal.hour * 60 + startLocal.minute;
+						endMin = endLocal.hour * 60 + endLocal.minute;
+						if (endMin === 0 && endLocal > startLocal) endMin = 24 * 60;
 					}
 
 					newEventsByDate[dateKey].push({
