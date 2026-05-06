@@ -452,6 +452,15 @@
 		}
 
 		const grouped = {};
+
+		connections.sort(function(a, b){
+			let x = a.provider.toLowerCase();
+			let y = b.provider.toLowerCase();
+			if (x < y) {return -1;}
+			if (x > y) {return 1;}
+			return 0;
+		});
+
 		connections.forEach(conn => {
 			const provider = conn.provider;
 			if (!grouped[provider]) grouped[provider] = [];
@@ -463,7 +472,6 @@
 			html += `<div class="provider-group">
 						<h3 class="provider-name">${provider}</h3>`;
 
-			//seřazení připojení dle emailu
 			conns.sort(function(a, b){
 				let x = a.email.toLowerCase();
 				let y = b.email.toLowerCase();

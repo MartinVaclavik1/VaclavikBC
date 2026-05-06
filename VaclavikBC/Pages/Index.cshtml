@@ -346,6 +346,56 @@
 				color: #ffffff;
 			}
 
+		.day-info-row {
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			gap: 6px;
+			flex-wrap: wrap;
+		}
+/* 
+		.stats-container {
+			position: relative;
+			display: inline-block;
+		} */
+
+		.day-stats-btn {
+			cursor: help;
+			background: none;
+			border: none;
+			font-size: 0.85rem;
+			padding: 2px 6px;
+			border-radius: 20px;
+			background-color: #e9ecef;
+			color: #1e293b;
+			font-weight: bold;
+			transition: all 0.2s ease;
+		}
+
+			.day-stats-btn:hover {
+				background-color: #cbd5e1;
+				transform: scale(1.02);
+			}
+
+		.stats-container:hover {
+			visibility: visible;
+			opacity: 1;
+		}
+
+		.floating-tooltip {
+			background-color: #1e293b;
+			color: #f1f5f9;
+			text-align: left;
+			border-radius: 10px;
+			padding: 10px 14px;
+			font-size: 0.75rem;
+			line-height: 1.45;
+			white-space: nowrap;
+			box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+			border: 1px solid rgba(255,255,255,0.1);
+			pointer-events: none;
+			font-family: 'Segoe UI', system-ui;
+		}
 	</style>
 </head>
 <body>
@@ -444,9 +494,6 @@
 				const newEventsByDate = {};
 
 				for (const ev of events) {
-					const start = new Date(ev.start);
-					const end = new Date(ev.end);
-
 					const startLocal = luxon.DateTime.fromISO(ev.start, { zone: timezone });
 					const endLocal = luxon.DateTime.fromISO(ev.end, { zone: timezone });
 
@@ -544,25 +591,32 @@
 			eventsWithHeight.sort((a,b) => a.startMin - b.startMin);
 
 			for (const ev of eventsWithHeight) {
-				let bestTop = 0;
-				let placedOk = false;
-				for (let tryTop = 0; tryTop <= 100 - ev.heightPercent; tryTop++) {
+				const overlapping = placed.filter(p =>
+					ev.startMin < p.endMin && p.startMin < ev.endMin
+				);
+				let candidates = [0];
+				for (const p of overlapping) {
+					candidates.push(p.topPercent + p.heightPercent);
+				}
+				candidates.sort((a, b) => a - b);
+				let bestTop = null;
+				for (const top of candidates) {
+					if (top < 0 || top > 100 - ev.heightPercent) continue;
 					let conflict = false;
-					for (const p of placed) {
-						if (ev.startMin < p.endMin && p.startMin < ev.endMin) {
-							if (tryTop < p.topPercent + p.heightPercent && tryTop + ev.heightPercent > p.topPercent) {
-								conflict = true;
-								break;
-							}
+					for (const p of overlapping) {
+						if (top < p.topPercent + p.heightPercent &&
+							top + ev.heightPercent > p.topPercent) {
+							conflict = true;
+							break;
 						}
 					}
 					if (!conflict) {
-						bestTop = tryTop;
-						placedOk = true;
+						bestTop = top;
 						break;
 					}
 				}
-				if (!placedOk) bestTop = 100 - ev.heightPercent;
+				if (bestTop === null) bestTop = 100 - ev.heightPercent;
+
 				placed.push({
 					topPercent: bestTop,
 					heightPercent: ev.heightPercent,
@@ -625,7 +679,13 @@
 				rowDiv.setAttribute('data-date', dateKey);
 				const dayLabel = document.createElement('div');
 				dayLabel.className = 'day-label';
-				dayLabel.innerHTML = `<div class="day-name">${weekdayNames[i]}</div><div class="day-date">${formatDateDDMMYYYY(currentDate)}</div>`;
+				const metrics = getOverlapAnalysisForDate(dateKey);
+				const tooltipHTML = getStatsTooltipContent(metrics);
+					dayLabel.innerHTML = `<div class="day-name">${weekdayNames[i]}</div>
+											<div class="day-info-row">
+												<div class="day-date">${formatDateDDMMYYYY(currentDate)}</div>
+												<button class="day-stats-btn" aria-label="View overlap statistics">i</button>
+										</div>`;
 				rowDiv.appendChild(dayLabel);
 				for (let hour = 0; hour < 24; hour++) {
 					const hourCell = document.createElement('div');
@@ -644,6 +704,8 @@
 				const dateAttr = row.getAttribute('data-date');
 				if (dateAttr) populateEventsForRow(row, dateAttr);
 			}
+
+			attachTooltipListeners();
 		}
 
 		async function navigateWeek(delta) {
@@ -771,6 +833,159 @@
 		function closeAuth() {
 			document.getElementById("authOverlay").style.display = "none";
 		}
+
+		function computeOverlapMetrics(events) {
+			const coverageAll = new Array(1440).fill(0);
+			const coverageNoFullDay = new Array(1440).fill(0);
+
+			const isFullDayEvent = events.map(ev => (ev.startMin === 0 && ev.endMin === 1440));
+
+			for (let i = 0; i < events.length; i++) {
+				const ev = events[i];
+				const isFull = isFullDayEvent[i];
+				for (let m = ev.startMin; m < ev.endMin; m++) {
+					coverageAll[m]++;
+					if (!isFull) coverageNoFullDay[m]++;
+				}
+			}
+
+			let totalOverlapMinutesAll = 0;
+			let maxOverlapAll = 0;
+			for (let m = 0; m < 1440; m++) {
+				if (coverageAll[m] >= 2) totalOverlapMinutesAll++;
+				if (coverageAll[m] > maxOverlapAll) maxOverlapAll = coverageAll[m];
+			}
+
+			const overlappingEventIds = new Set();
+			for (let i = 0; i < events.length; i++) {
+				const ev = events[i];
+				for (let m = ev.startMin; m < ev.endMin; m++) {
+					if (coverageAll[m] >= 2) {
+						overlappingEventIds.add(i);
+						break;
+					}
+				}
+			}
+			let distinctOverlapCount = overlappingEventIds.size;
+			if (distinctOverlapCount === 0 && events.length === 1) distinctOverlapCount = 0;
+
+			let totalOverlapMinutesNoFull = 0;
+			const overlappingEventIdsNoFull = new Set();
+			const nonFullIndices = [];
+			for (let i = 0; i < events.length; i++) {
+				if (!isFullDayEvent[i]) nonFullIndices.push(i);
+			}
+
+			const coverageNonFullOnly = new Array(1440).fill(0);
+			for (let idx of nonFullIndices) {
+				const ev = events[idx];
+				for (let m = ev.startMin; m < ev.endMin; m++) {
+					coverageNonFullOnly[m]++;
+				}
+			}
+
+			for (let m = 0; m < 1440; m++) {
+				if (coverageNonFullOnly[m] >= 2) totalOverlapMinutesNoFull++;
+			}
+
+			for (let idx of nonFullIndices) {
+				const ev = events[idx];
+				for (let m = ev.startMin; m < ev.endMin; m++) {
+					if (coverageNonFullOnly[m] >= 2) {
+						overlappingEventIdsNoFull.add(idx);
+						break;
+					}
+				}
+			}
+			let distinctOverlapCountNoFull = overlappingEventIdsNoFull.size;
+			if (distinctOverlapCountNoFull === 0 && nonFullIndices.length === 1) distinctOverlapCountNoFull = 0;
+
+			return {
+				totalOverlapMinutes: totalOverlapMinutesAll,
+				distinctOverlapCount: distinctOverlapCount,
+				totalOverlapMinutesNoFull: totalOverlapMinutesNoFull,
+				distinctOverlapCountNoFull: distinctOverlapCountNoFull,
+				maxOverlapCount: maxOverlapAll
+			};
+		}
+
+		function getOverlapAnalysisForDate(dateKey) {
+			const events = eventsByDate[dateKey] || [];
+			return computeOverlapMetrics(events);
+		}
+
+		function getStatsTooltipContent(metrics) {
+			const maxOverlapDisplay = metrics.maxOverlapCount === 1 ? 0 : metrics.maxOverlapCount;
+			const allEventsText = `${metrics.distinctOverlapCount} events`;
+			const noFullText = `${metrics.distinctOverlapCountNoFull} events`;
+
+			return `[Overlap analysis]<br><hr>
+			Total overlaps: ${metrics.totalOverlapMinutes} min (${allEventsText})<br>
+			Without full-day events: ${metrics.totalOverlapMinutesNoFull} min (${noFullText})<br>
+			Max overlaps at one time: ${maxOverlapDisplay} events`;
+		}
+
+		let activeTooltip = null;
+
+		function showFloatingTooltip(button, dateKey) {
+			if (activeTooltip) activeTooltip.remove();
+
+			const metrics = getOverlapAnalysisForDate(dateKey);
+			const tooltipHTML = getStatsTooltipContent(metrics);
+
+			const rect = button.getBoundingClientRect();
+			const tooltip = document.createElement('div');
+			tooltip.className = 'floating-tooltip';
+			tooltip.innerHTML = tooltipHTML;
+			document.body.appendChild(tooltip);
+
+			const tooltipRect = tooltip.getBoundingClientRect();
+			let left = rect.left + rect.width/2 - tooltipRect.width/2;
+			let top = rect.top - tooltipRect.height - 8;
+
+			if (top < 0) top = rect.bottom + 8;
+			if (left + tooltipRect.width > window.innerWidth) left = window.innerWidth - tooltipRect.width - 8;
+			if (left < 0) left = 8;
+
+			tooltip.style.position = 'fixed';
+			tooltip.style.left = `${left}px`;
+			tooltip.style.top = `${top}px`;
+			tooltip.style.zIndex = '100000';
+			tooltip.style.visibility = 'visible';
+			tooltip.style.opacity = '1';
+
+			activeTooltip = tooltip;
+		}
+
+		function hideFloatingTooltip() {
+			if (activeTooltip) {
+				activeTooltip.remove();
+				activeTooltip = null;
+			}
+		}
+
+		
+		function attachTooltipListeners() {
+			document.querySelectorAll('.day-stats-btn').forEach(btn => {
+				btn.removeEventListener('mouseenter', btn._tooltipHandler);
+				btn.removeEventListener('mouseleave', btn._tooltipLeaveHandler);
+
+				const row = btn.closest('.calendar-row');
+				const dateKey = row ? row.getAttribute('data-date') : null;
+				if (!dateKey) return;
+
+				const handler = () => showFloatingTooltip(btn, dateKey);
+				const leaveHandler = () => hideFloatingTooltip();
+
+				btn.addEventListener('mouseenter', handler);
+				btn.addEventListener('mouseleave', leaveHandler);
+
+				btn._tooltipHandler = handler;
+				btn._tooltipLeaveHandler = leaveHandler;
+			});
+		}
+
+
 	</script>
 
 </body>

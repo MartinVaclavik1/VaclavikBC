@@ -81,7 +81,6 @@ namespace VaclavikBC.Controllers
                     break;
                 default:
                     return NotFound();
-                    break;
             }
 
             await _hubContext.Clients.All.SendAsync("ConnectionChanged", "Calendar data updated");  //znovu načteme kalendářové připojení a události
