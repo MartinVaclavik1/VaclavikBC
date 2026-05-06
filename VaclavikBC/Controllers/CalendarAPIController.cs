@@ -154,8 +154,6 @@ namespace VaclavikBC.Controllers
             {
                 DateTime segmentStart = Max(originalStart, dayStart);    //když jde o 2 den, tak se nastaví čas na 0:00
                 DateTime segmentEnd = Min(originalEnd, dayStart.AddDays(1));
-                //DateTime clippedStart = Max(segmentStart, weekStart);
-                //DateTime clippedEnd = Min(segmentEnd, weekEnd);
 
                 if (segmentStart < segmentEnd)
                 {
