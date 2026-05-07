@@ -78,7 +78,6 @@ namespace VaclavikBC.Controllers
 
                 } while (pageToken != null);
                 json = calendarInfo[i].Remove(calendarInfo[i].Length - 1) + "," + json.Remove(0, 1);  //smazání } a { 
-                Console.WriteLine(json);
                 Calendar kalendar = JsonConvert.DeserializeObject<Calendar>(json);
 
                 if (kalendar != null) { 
